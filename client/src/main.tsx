@@ -1,0 +1,45 @@
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import "./index.css";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import Layout from "./components/Layout";
+import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
+import Work from "./pages/Work";
+import Life from "./pages/Life";
+import JournalPage from "./pages/Journal";
+
+function Protected() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="grid h-screen place-items-center text-stone-400">加载中…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Layout />;
+}
+
+function GuestOnly({ mode }: { mode: "login" | "register" }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/" replace />;
+  return <AuthPage mode={mode} />;
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<GuestOnly mode="login" />} />
+          <Route path="/register" element={<GuestOnly mode="register" />} />
+          <Route element={<Protected />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/work" element={<Work />} />
+            <Route path="/life" element={<Life />} />
+            <Route path="/journal" element={<JournalPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  </StrictMode>,
+);
