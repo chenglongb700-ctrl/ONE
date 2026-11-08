@@ -1,0 +1,585 @@
+<title>ONE 构思板</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* 布局：方格本式的构思板。顶部是脑图总览，下面按方向分组的点子卡片，每张卡片可标记、写想法；每个方向一种墨色 */
+:root {
+  --bg: #f3f4ef;
+  --grid: #e2e4dc;
+  --paper: #fdfdfb;
+  --ink: #23262b;
+  --muted: #6a6f76;
+  --line: #d9dcd3;
+  --chip: #eceee8;
+  --want: #1f6f5c;
+  --c-done: #8a8f96;
+  --c-time: #4f5bd5;
+  --c-work: #1f7ab8;
+  --c-learn: #8a4fc7;
+  --c-life: #2f8f5b;
+  --c-review: #c27a12;
+  --c-tools: #c84b5a;
+  --c-public: #3d7f8c;
+  --f-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171b; --grid: #1f2228; --paper: #1c1f24; --ink: #e8eaed; --muted: #9aa1ab; --line: #2e333b; --chip: #262a31;
+    --want: #4fc3a1; --c-done: #7d848d; --c-time: #8b95ff; --c-work: #5cb2ec; --c-learn: #b78cf0; --c-life: #5fc48b;
+    --c-review: #f0aa45; --c-tools: #f07d8b; --c-public: #6cc0cf; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171b; --grid: #1f2228; --paper: #1c1f24; --ink: #e8eaed; --muted: #9aa1ab; --line: #2e333b; --chip: #262a31;
+  --want: #4fc3a1; --c-done: #7d848d; --c-time: #8b95ff; --c-work: #5cb2ec; --c-learn: #b78cf0; --c-life: #5fc48b;
+  --c-review: #f0aa45; --c-tools: #f07d8b; --c-public: #6cc0cf; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 72px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+button, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--want); outline-offset: 2px; }
+
+header { padding: 40px 0 20px; display: grid; gap: 14px; }
+.eyebrow { font-size: 13px; letter-spacing: .14em; color: var(--muted); margin: 0; }
+h1 { font-family: var(--f-display); font-weight: 900; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.2; margin: 0; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 40em; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px; }
+.tally span { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; font-size: 13px; }
+.tally b { font-variant-numeric: tabular-nums; }
+.sync { font-size: 12px; color: var(--muted); margin-left: auto; }
+.sync.ok::before { content: "● "; color: var(--want); }
+.sync.local::before { content: "● "; color: var(--c-review); }
+
+h2 { font-family: var(--f-display); font-weight: 900; font-size: 1.45rem; margin: 0 0 4px; text-wrap: balance; }
+.sec-sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+section { margin-top: 44px; }
+
+/* 脑图 */
+.map { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; overflow-x: auto; }
+.map svg { display: block; width: 100%; min-width: 900px; height: auto; }
+.map .node { cursor: pointer; }
+.map .node:hover rect, .map .node:focus-visible rect { stroke-width: 2.5; }
+.map-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* 描述模板 */
+.howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; min-width: 0; }
+.panel h3 { margin: 0 0 10px; font-size: 1rem; }
+.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; }
+.steps b { display: block; }
+.steps span { color: var(--muted); font-size: 14px; }
+.example { font-size: 14px; white-space: pre-wrap; margin: 0; background: var(--chip); border-radius: 8px; padding: 12px 14px; }
+
+/* 点子卡片 */
+.cluster { margin-top: 36px; }
+.cluster-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 2px solid var(--c); padding-bottom: 6px; }
+.cluster-head h3 { margin: 0; font-family: var(--f-display); font-size: 1.2rem; color: var(--c); }
+.cluster-head p { margin: 0; color: var(--muted); font-size: 13px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; transition: border-color .2s, box-shadow .2s; scroll-margin-top: 24px; }
+.card[data-status="want"] { border-color: var(--c); box-shadow: inset 4px 0 0 var(--c); }
+.card[data-status="skip"] { opacity: .55; }
+.card.flash { box-shadow: 0 0 0 3px var(--c); }
+.card h4 { margin: 0; font-size: 1.02rem; }
+.card .desc { margin: 0; font-size: 14px; }
+.card ul { margin: 0; padding-left: 1.1em; font-size: 13px; color: var(--muted); }
+.tech { font-size: 12px; color: var(--muted); }
+.tech::before { content: "能学到："; }
+.choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.choices button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 2px 12px; font-size: 13px; }
+.choices button[aria-pressed="true"][data-v="want"] { background: var(--c); border-color: var(--c); color: var(--paper); }
+.choices button[aria-pressed="true"][data-v="maybe"] { background: var(--chip); border-color: var(--c); border-style: dashed; }
+.choices button[aria-pressed="true"][data-v="skip"] { background: var(--chip); color: var(--muted); }
+textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+.done-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.done-list span { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 13px; color: var(--muted); }
+.done-list span::before { content: "✓ "; color: var(--want); }
+
+/* 我的点子 */
+.mine-form { display: grid; gap: 8px; }
+.mine-form input { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 8px; padding: 6px 14px; font-size: 14px; justify-self: start; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.mine-list { display: grid; gap: 10px; margin-top: 14px; }
+.mine-item { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--want); border-radius: 10px; padding: 10px 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+.mine-item b { min-width: 0; overflow-wrap: anywhere; }
+.mine-item p { grid-column: 1 / -1; margin: 0; font-size: 14px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.mine-item button { border: none; background: none; color: var(--muted); font-size: 13px; }
+
+/* 汇总 */
+.summary pre { white-space: pre-wrap; font-family: var(--f-body); font-size: 14px; margin: 0 0 12px; max-height: 420px; overflow: auto; background: var(--bg); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--line); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.note { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">ONE 个人网站 · 下一步做什么</p>
+    <h1>功能构思板</h1>
+    <p class="lede">已经有了工作、生活、感悟、学习、习惯。下面是 8 个方向、30 个可以继续做的点子。挑你真正会用的标"想做"，在框里写下你的场景和想法，也可以加上自己的新点子。你的选择会自动保存，明天我可以直接读到。</p>
+    <div class="bar">
+      <div class="tally" id="tally"></div>
+      <span class="sync" id="sync">正在连接存储…</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="map-title">
+    <h2 id="map-title">全景图</h2>
+    <p class="sec-sub">实心 = 想做，虚线 = 再想想，变淡 = 不需要。点任意一个点子跳到它的卡片。</p>
+    <div class="map"><svg id="map" role="img" aria-label="ONE 网站功能方向脑图"></svg></div>
+    <p class="map-hint">窄屏可以左右滑动查看。</p>
+  </section>
+
+  <section aria-labelledby="howto-title">
+    <h2 id="howto-title">明晚怎样告诉我</h2>
+    <p class="sec-sub">不用写得很正式。说清楚下面几点，我就能直接设计和实现；没想好的地方写"不确定"就行，我会给你选项。</p>
+    <div class="howto">
+      <div class="panel">
+        <h3>描述一个功能的 6 个问题</h3>
+        <ol class="steps">
+          <li><b>场景</b><span>什么时候、在什么情况下会用？现在没有它，哪里不方便？</span></li>
+          <li><b>想要的结果</b><span>用完之后你得到什么？看到一个数字、省掉一步、不再忘事？</span></li>
+          <li><b>要记哪些信息</b><span>每条记录有哪些内容？比如：日期、时长、分类、备注。</span></li>
+          <li><b>放在哪里</b><span>单独一个页面，首页一张卡片，还是某个页面里加一个按钮？</span></li>
+          <li><b>必须有 / 最好有 / 不需要</b><span>先做最小可用的版本，其余以后再加。</span></li>
+          <li><b>参考</b><span>用过的哪个 App 有类似功能、你喜欢或讨厌它哪一点。截图也行。</span></li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3>举个例子：番茄钟</h3>
+        <p class="example">场景：上班写代码时容易被消息打断，晚上学习也经常刷手机。
+想要的结果：每天能看到自己真正专注了多少分钟，工作和学习分开统计。
+要记的信息：开始时间、时长、关联的任务或学习项目、有没有被打断。
+放在哪里：侧边栏单独一页；首页显示今天专注了多少分钟。
+必须有：25 分钟倒计时、选任务、结束提醒、自动记录。
+最好有：自定义时长、长休息。
+不需要：白噪音。
+参考：Forest 的统计图挺好看，但种树没必要。</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="ideas-title">
+    <h2 id="ideas-title">点子清单</h2>
+    <p class="sec-sub">每个点子下面的问题是帮你构思用的，不需要全部回答。</p>
+    <div id="clusters"></div>
+  </section>
+
+  <section aria-labelledby="mine-title">
+    <h2 id="mine-title">我的新点子</h2>
+    <p class="sec-sub">清单里没有、但你平时真正需要的，写在这里。</p>
+    <form class="panel mine-form" id="mineForm">
+      <label class="note" for="mineTitle">点子名称</label>
+      <input id="mineTitle" maxlength="60" placeholder="例如：通勤时间统计" required>
+      <label class="note" for="mineNote">场景和想法</label>
+      <textarea id="mineNote" maxlength="2000" placeholder="什么时候用？想要什么结果？要记哪些信息？"></textarea>
+      <button class="btn" type="submit">添加</button>
+    </form>
+    <div class="mine-list" id="mineList"></div>
+  </section>
+
+  <section aria-labelledby="sum-title" class="summary">
+    <h2 id="sum-title">汇总</h2>
+    <p class="sec-sub">根据你的标记自动生成。明晚可以直接告诉我"看构思板"，也可以把这段复制给我。</p>
+    <pre id="summary"></pre>
+    <div class="row">
+      <button class="btn ghost" type="button" id="copyBtn">复制汇总</button>
+      <span class="note" id="copyMsg"></span>
+    </div>
+  </section>
+</div>
+
+<script>
+const CLUSTERS = [
+  { id: "done", name: "已经有了", color: "--c-done", side: "L", done: true, sub: "现在的网站", ideas: [
+    { id: "d1", t: "工作看板" }, { id: "d2", t: "生活清单" }, { id: "d3", t: "记账" },
+    { id: "d4", t: "感悟日记" }, { id: "d5", t: "学习计划" }, { id: "d6", t: "习惯打卡" } ] },
+  { id: "time", name: "时间与专注", color: "--c-time", side: "L", sub: "知道时间花在了哪里", ideas: [
+    { id: "pomodoro", t: "番茄钟专注", d: "选一个工作任务或学习项目，开始 25 分钟专注，结束后自动记下时长。", q: ["你习惯 25 分钟，还是更长的专注段？", "被打断时要记录下来吗？"], tech: "计时器、浏览器通知、多表关联" },
+    { id: "timelog", t: "时间账本", d: "像记账一样记时间：每天的时间花在工作、学习、通勤、娱乐的比例。", q: ["想手动补记，还是只靠番茄钟自动记？", "时间要分哪几类？"], tech: "时间段建模、堆叠图" },
+    { id: "calendar", t: "日历视图", d: "把任务截止日、学习目标日、生活事项和纪念日放在一张月历上。", q: ["主要看月视图还是周视图？", "要能在日历上拖动改日期吗？"], tech: "日历网格、拖拽交互" },
+    { id: "daily", t: "每日计划与复盘", d: "早上选出今天最重要的 3 件事，晚上花一分钟打分、写一句复盘。", q: ["在早上计划，还是前一天晚上？", "复盘写几句话，还是只打个分？"], tech: "跨模块引用、表单设计" } ] },
+  { id: "work", name: "工作", color: "--c-work", side: "L", sub: "让工作模块更像回事", ideas: [
+    { id: "projects", t: "项目分组", d: "任务归到不同项目下，按项目看进度和花了多少时间。", q: ["你同时在推进几个项目？", "项目需要截止日期或阶段吗？"], tech: "一对多、筛选" },
+    { id: "meetings", t: "会议与工作笔记", d: "记下会议结论，里面的待办一键变成任务。", q: ["会议多吗？通常记哪些内容？"], tech: "Markdown、文本解析" },
+    { id: "weekly", t: "周报草稿", d: "自动列出本周完成的任务和各项目耗时，复制后稍改就是周报。", q: ["公司周报是什么格式？", "要按项目分组吗？"], tech: "聚合查询、模板生成" },
+    { id: "brag", t: "成就档案", d: "随手记下做成的事、拿到的结果和收到的认可，年终总结和跳槽时直接用。", q: ["想记项目成果、数据，还是别人的评价？"], tech: "标签、导出" } ] },
+  { id: "learn", name: "学习与知识", color: "--c-learn", side: "L", sub: "学过的东西留得住", ideas: [
+    { id: "notes", t: "知识笔记", d: "用 Markdown 写技术笔记，代码高亮，可以挂在学习项目下，支持全文搜索。", q: ["现在的笔记记在哪里？", "需要插图片吗？"], tech: "Markdown 渲染、SQLite FTS5 全文检索" },
+    { id: "cards", t: "间隔复习卡片", d: "把要记住的知识点做成卡片，按遗忘曲线安排每天该复习哪些。", q: ["要记的是单词、面试题，还是概念？", "每天愿意花几分钟复习？"], tech: "SM-2 复习算法" },
+    { id: "quotes", t: "读书摘录", d: "读书时摘下好句子和自己的想法，挂在对应的书下面，首页随机回顾一条。", q: ["摘录时通常在手机上还是电脑上？"], tech: "随机推荐、表关联" },
+    { id: "links", t: "稍后读收藏夹", d: "收藏文章和链接，标记已读，读完写一句话总结。", q: ["收藏主要来自哪些网站？", "需要自动抓取标题吗？"], tech: "后端抓取网页、状态流转" } ] },
+  { id: "life", name: "生活与健康", color: "--c-life", side: "R", sub: "照顾好自己", ideas: [
+    { id: "health", t: "健康记录", d: "体重、睡眠时长、运动、喝水，画成趋势线。", q: ["最关心哪几项？", "每天记，还是想起来才记？"], tech: "时间序列、折线图" },
+    { id: "budget", t: "月度预算", d: "给支出分类设每月预算，快超支时在首页提醒。", q: ["按分类控制，还是只控总额？"], tech: "聚合计算、进度提示" },
+    { id: "subs", t: "订阅与固定支出", d: "房租、会员、话费这类每月固定的钱，集中查看，扣款前提醒。", q: ["大概有几项固定支出？"], tech: "周期性日期计算" },
+    { id: "wish", t: "心愿单与存钱目标", d: "想买的东西、想去的地方，设一个目标金额，看存钱进度。", q: ["要和记账联动，自动算存了多少吗？"], tech: "跨表计算" },
+    { id: "dates", t: "纪念日与生日", d: "生日、纪念日、证件到期，提前几天在首页提醒。", q: ["需要农历生日吗？", "提前几天提醒合适？"], tech: "农历转换、每年循环日期" } ] },
+  { id: "review", name: "回顾与洞察", color: "--c-review", side: "R", sub: "从记录里看出东西", ideas: [
+    { id: "charts", t: "统计图表页", d: "支出趋势、学习时长、打卡率、心情变化，一页看全。", q: ["你最想从自己的数据里看出什么？"], tech: "GROUP BY 聚合、图表库" },
+    { id: "report", t: "周报 / 月报 / 年度回顾", d: "自动汇总一段时间的工作、学习、习惯、花销和感悟，再留一栏写反思。", q: ["哪个周期对你最有用？"], tech: "跨表汇总、报表生成" },
+    { id: "onthisday", t: "那年今天", d: "首页显示往年同一天写的感悟和做过的事。", q: ["这个功能要记录一年以上才有意思，你会坚持吗？"], tech: "日期查询" },
+    { id: "correlate", t: "关联发现", d: "比如：睡够 7 小时的日子心情更好吗？运动那天学习时间更长吗？", q: ["你好奇哪两件事之间有关系？"], tech: "简单统计、相关性" } ] },
+  { id: "tools", name: "体验与工具", color: "--c-tools", side: "R", sub: "用起来更顺手", ideas: [
+    { id: "search", t: "全局搜索 Ctrl+K", d: "一个搜索框，搜遍任务、笔记、感悟、学习日志。", q: ["平时习惯用键盘快捷键吗？"], tech: "全文检索、快捷键" },
+    { id: "quick", t: "快速记录", d: "一个输入框：输入「午饭 35」就记账，「读书 30分」就记学习。", q: ["你最常记的是哪几类？"], tech: "文本解析、规则匹配" },
+    { id: "backup", t: "备份与导出", d: "一键导出全部数据为 JSON 或 Excel，定期自动备份数据库。", q: ["想备份到哪里：本机文件夹、网盘，还是私有 GitHub 仓库？"], tech: "文件生成、定时任务" },
+    { id: "ai", t: "AI 助手", d: "让 Claude 帮你总结一周、给学习计划提建议、从感悟里找规律。", q: ["最想让 AI 帮你做哪一件事？", "介意把数据发给 AI 吗？"], tech: "调用 Claude API、提示词设计" },
+    { id: "dark", t: "深色模式与主题", d: "晚上用的深色毛玻璃主题，可以换主题色。", q: ["晚上用电脑多吗？"], tech: "CSS 变量、主题切换" },
+    { id: "remind", t: "提醒通知", d: "任务快到期、该打卡了、该复习了，用桌面通知提醒你。", q: ["哪些事最需要被提醒？"], tech: "通知 API、定时检查" } ] },
+  { id: "public", name: "对外展示", color: "--c-public", side: "R", sub: "让别人看到你", ideas: [
+    { id: "profile", t: "公开主页 / 作品集", d: "个人简介、技术栈、项目经历，再挑几篇感悟和笔记公开。", q: ["主要给谁看：面试官、朋友，还是同行？"], tech: "公开与私有的权限设计" },
+    { id: "blog", t: "技术博客", d: "从知识笔记里挑一篇，一键发布成公开文章。", q: ["打算多久写一篇？"], tech: "静态页面、SEO" },
+    { id: "deploy", t: "部署上线", d: "租一台服务器或用托管平台，配上域名和 HTTPS，手机上也能随时用。", q: ["每月愿意花多少钱？", "需要在手机上随时打开吗？"], tech: "Linux、Nginx、域名、HTTPS" } ] },
+];
+const ALL = CLUSTERS.flatMap(c => c.done ? [] : c.ideas.map(i => ({ ...i, cluster: c })));
+const LABEL = { want: "想做", maybe: "再想想", skip: "不需要" };
+
+// ---------- 状态与存储 ----------
+const picks = {};          // ideaId -> {status, note}
+let mine = [];             // [{id, title, note, createdAt}]
+let db = null;
+const LS = "one-ideas-v1";
+const syncEl = document.getElementById("sync");
+
+function loadLocal() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LS) || "{}");
+    Object.assign(picks, s.picks || {});
+    mine = s.mine || [];
+  } catch (e) {}
+}
+function saveLocal() {
+  try { localStorage.setItem(LS, JSON.stringify({ picks, mine })); } catch (e) {}
+}
+
+// 每个文档同一时间只写一次：按 id 串行
+const chains = {};
+function writePick(id) {
+  saveLocal();
+  if (!db) return;
+  const body = { status: picks[id]?.status || "", note: picks[id]?.note || "", updatedAt: new Date().toISOString() };
+  chains[id] = (chains[id] || Promise.resolve()).then(() => db.collection("picks").doc(id).set(body)).catch(err => {
+    syncEl.textContent = "保存失败：" + (err && err.code || "未知错误") + "，已先存在本浏览器";
+    syncEl.className = "sync local";
+  });
+}
+
+// ---------- 渲染：脑图 ----------
+const svgNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(svgNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function renderMap() {
+  const svg = document.getElementById("map");
+  svg.textContent = "";
+  const ROW = 32, GAP = 16, TOP = 24, W = 1160;
+  const sides = { L: CLUSTERS.filter(c => c.side === "L"), R: CLUSTERS.filter(c => c.side === "R") };
+  const layout = {};
+  let maxH = 0;
+  for (const s of ["L", "R"]) {
+    let y = TOP;
+    for (const c of sides[s]) {
+      const ys = c.ideas.map((_, i) => y + i * ROW);
+      layout[c.id] = { ys, cy: (ys[0] + ys[ys.length - 1]) / 2 };
+      y += c.ideas.length * ROW + GAP;
+    }
+    maxH = Math.max(maxH, y);
+  }
+  const H = maxH + 4;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const cx = W / 2, cy = H / 2;
+  const ink = cssVar("--ink"), paper = cssVar("--paper"), muted = cssVar("--muted"), line = cssVar("--line"), chip = cssVar("--chip");
+  const links = el("g", { fill: "none" }, svg);
+  const nodes = el("g", { "font-family": "Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif" }, svg);
+
+  // 中心
+  el("rect", { x: cx - 70, y: cy - 22, width: 140, height: 44, rx: 22, fill: ink }, nodes);
+  const ct = el("text", { x: cx, y: cy + 6, "text-anchor": "middle", "font-size": 17, "font-weight": 700, fill: paper }, nodes);
+  ct.textContent = "🌱 ONE";
+
+  for (const c of CLUSTERS) {
+    const col = cssVar(c.color);
+    const L = c.side === "L";
+    const { ys, cy: ccy } = layout[c.id];
+    const cw = 124, ciX = L ? cx - 210 - cw : cx + 210;   // 方向节点
+    const iw = 210, iX = L ? 40 : W - 40 - iw;            // 点子节点
+    const cEdgeIn = L ? ciX + cw : ciX, cEdgeOut = L ? ciX : ciX + cw;
+    const hubEdge = L ? cx - 70 : cx + 70;
+    el("path", { d: `M${hubEdge},${cy} C${(hubEdge + cEdgeIn) / 2},${cy} ${(hubEdge + cEdgeIn) / 2},${ccy} ${cEdgeIn},${ccy}`, stroke: col, "stroke-width": 2, opacity: .7 }, links);
+    el("rect", { x: ciX, y: ccy - 17, width: cw, height: 34, rx: 8, fill: paper, stroke: col, "stroke-width": 2 }, nodes);
+    const t = el("text", { x: ciX + cw / 2, y: ccy + 5, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: col }, nodes);
+    t.textContent = c.name;
+
+    c.ideas.forEach((idea, i) => {
+      const y = ys[i];
+      const iEdge = L ? iX + iw : iX;
+      el("path", { d: `M${cEdgeOut},${ccy} C${(cEdgeOut + iEdge) / 2},${ccy} ${(cEdgeOut + iEdge) / 2},${y} ${iEdge},${y}`, stroke: col, "stroke-width": 1.2, opacity: .45 }, links);
+      const st = c.done ? "done" : (picks[idea.id]?.status || "");
+      const g = el("g", { class: c.done ? "" : "node", opacity: st === "skip" ? .35 : 1 }, nodes);
+      if (!c.done) {
+        g.setAttribute("tabindex", "0");
+        g.setAttribute("role", "link");
+        g.setAttribute("aria-label", `${idea.t}${st ? "（" + LABEL[st] + "）" : ""}`);
+        const go = () => jumpTo(idea.id);
+        g.addEventListener("click", go);
+        g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+      }
+      const fill = st === "want" ? col : st === "done" ? chip : paper;
+      const r = el("rect", { x: iX, y: y - 13, width: iw, height: 26, rx: 13, fill, stroke: st === "done" ? line : col, "stroke-width": 1.4 }, g);
+      if (st === "maybe") r.setAttribute("stroke-dasharray", "4 3");
+      const tx = el("text", { x: iX + iw / 2, y: y + 5, "text-anchor": "middle", "font-size": 13, fill: st === "want" ? paper : st === "done" ? muted : ink }, g);
+      tx.textContent = (st === "done" ? "✓ " : st === "want" ? "★ " : "") + idea.t;
+      if (st === "skip") el("line", { x1: iX + 30, y1: y, x2: iX + iw - 30, y2: y, stroke: muted, "stroke-width": 1 }, g);
+    });
+  }
+}
+
+function jumpTo(id) {
+  const card = document.getElementById("idea-" + id);
+  if (!card) return;
+  card.scrollIntoView({ block: "center" });
+  card.classList.add("flash");
+  setTimeout(() => card.classList.remove("flash"), 1400);
+  card.querySelector("textarea")?.focus({ preventScroll: true });
+}
+
+// ---------- 渲染：卡片（只建一次，之后只更新状态） ----------
+function buildCards() {
+  const root = document.getElementById("clusters");
+  for (const c of CLUSTERS) {
+    const sec = document.createElement("div");
+    sec.className = "cluster";
+    sec.style.setProperty("--c", `var(${c.color})`);
+    const head = document.createElement("div");
+    head.className = "cluster-head";
+    const h = document.createElement("h3"); h.textContent = c.name;
+    const p = document.createElement("p"); p.textContent = c.sub;
+    head.append(h, p);
+    sec.appendChild(head);
+    if (c.done) {
+      const list = document.createElement("div");
+      list.className = "done-list";
+      c.ideas.forEach(i => { const s = document.createElement("span"); s.textContent = i.t; list.appendChild(s); });
+      sec.appendChild(list);
+      root.appendChild(sec);
+      continue;
+    }
+    const grid = document.createElement("div");
+    grid.className = "cards";
+    for (const idea of c.ideas) {
+      const card = document.createElement("article");
+      card.className = "card";
+      card.id = "idea-" + idea.id;
+      const h4 = document.createElement("h4"); h4.textContent = idea.t;
+      const d = document.createElement("p"); d.className = "desc"; d.textContent = idea.d;
+      const ul = document.createElement("ul");
+      idea.q.forEach(q => { const li = document.createElement("li"); li.textContent = q; ul.appendChild(li); });
+      const tech = document.createElement("div"); tech.className = "tech"; tech.textContent = idea.tech;
+      const ch = document.createElement("div"); ch.className = "choices"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", idea.t + " 的选择");
+      for (const v of ["want", "maybe", "skip"]) {
+        const b = document.createElement("button");
+        b.type = "button"; b.dataset.v = v; b.textContent = LABEL[v];
+        b.addEventListener("click", () => {
+          const cur = picks[idea.id] || { status: "", note: "" };
+          picks[idea.id] = { ...cur, status: cur.status === v ? "" : v };
+          updateIdea(idea.id); renderMap(); renderTally(); renderSummary();
+          writePick(idea.id);
+        });
+        ch.appendChild(b);
+      }
+      const ta = document.createElement("textarea");
+      ta.id = "note-" + idea.id;
+      ta.setAttribute("aria-label", idea.t + " 的想法");
+      ta.placeholder = "你的场景和想法（可选）";
+      ta.maxLength = 2000;
+      let timer;
+      ta.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const cur = picks[idea.id] || { status: "", note: "" };
+          if (cur.note === ta.value) return;
+          picks[idea.id] = { ...cur, note: ta.value };
+          renderSummary();
+          writePick(idea.id);
+        }, 900);
+      });
+      card.append(h4, d, ul, tech, ch, ta);
+      grid.appendChild(card);
+    }
+    sec.appendChild(grid);
+    root.appendChild(sec);
+  }
+}
+
+function updateIdea(id) {
+  const card = document.getElementById("idea-" + id);
+  if (!card) return;
+  const p = picks[id] || {};
+  card.dataset.status = p.status || "";
+  card.querySelectorAll(".choices button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === p.status)));
+  const ta = card.querySelector("textarea");
+  if (document.activeElement !== ta && ta.value !== (p.note || "")) ta.value = p.note || "";
+}
+
+function renderTally() {
+  const n = { want: 0, maybe: 0, skip: 0 };
+  ALL.forEach(i => { const s = picks[i.id]?.status; if (s) n[s]++; });
+  const box = document.getElementById("tally");
+  box.textContent = "";
+  for (const [k, label] of [["want", "想做"], ["maybe", "再想想"], ["skip", "不需要"]]) {
+    const s = document.createElement("span");
+    s.append(label + " ");
+    const b = document.createElement("b"); b.textContent = n[k]; s.appendChild(b);
+    box.appendChild(s);
+  }
+  const s = document.createElement("span");
+  s.append("新点子 ");
+  const b = document.createElement("b"); b.textContent = mine.length; s.appendChild(b);
+  box.appendChild(s);
+}
+
+function renderMine() {
+  const list = document.getElementById("mineList");
+  list.textContent = "";
+  for (const m of mine) {
+    const item = document.createElement("div"); item.className = "mine-item";
+    const t = document.createElement("b"); t.textContent = m.title;
+    const del = document.createElement("button"); del.type = "button"; del.textContent = "删除";
+    del.setAttribute("aria-label", "删除 " + m.title);
+    del.addEventListener("click", async () => {
+      mine = mine.filter(x => x.id !== m.id);
+      renderMine(); renderTally(); renderSummary(); saveLocal();
+      if (db) { try { await db.collection("mine").doc(m.id).delete(); } catch (e) {} }
+    });
+    item.append(t, del);
+    if (m.note) { const p = document.createElement("p"); p.textContent = m.note; item.appendChild(p); }
+    list.appendChild(item);
+  }
+}
+
+function renderSummary() {
+  const lines = [];
+  const group = (status, title) => {
+    const items = ALL.filter(i => picks[i.id]?.status === status);
+    if (!items.length) return;
+    lines.push(`【${title}】`);
+    items.forEach(i => {
+      lines.push(`· ${i.t}（${i.cluster.name}）`);
+      const note = (picks[i.id].note || "").trim();
+      if (note) lines.push("  " + note.replace(/\n/g, "\n  "));
+    });
+    lines.push("");
+  };
+  group("want", "想做");
+  group("maybe", "再想想");
+  if (mine.length) {
+    lines.push("【我的新点子】");
+    mine.forEach(m => { lines.push("· " + m.title); if (m.note) lines.push("  " + m.note.trim().replace(/\n/g, "\n  ")); });
+    lines.push("");
+  }
+  const skipped = ALL.filter(i => picks[i.id]?.status === "skip").map(i => i.t);
+  if (skipped.length) lines.push("【不需要】" + skipped.join("、"));
+  document.getElementById("summary").textContent = lines.length ? lines.join("\n").trim() : "还没有标记任何点子。在上面的卡片里选「想做」或「再想想」，这里会自动整理。";
+}
+
+function renderAll() {
+  ALL.forEach(i => updateIdea(i.id));
+  renderMap(); renderTally(); renderMine(); renderSummary();
+}
+
+// ---------- 交互 ----------
+document.getElementById("mineForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const title = document.getElementById("mineTitle").value.trim();
+  const note = document.getElementById("mineNote").value.trim();
+  if (!title) return;
+  const id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const item = { id, title, note, createdAt: new Date().toISOString() };
+  mine = [...mine, item];
+  document.getElementById("mineTitle").value = "";
+  document.getElementById("mineNote").value = "";
+  renderMine(); renderTally(); renderSummary(); saveLocal();
+  if (db) {
+    try { await db.collection("mine").doc(id).set({ title, note, createdAt: item.createdAt }); }
+    catch (err) { syncEl.textContent = "保存失败，已先存在本浏览器"; syncEl.className = "sync local"; }
+  }
+});
+
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  const text = document.getElementById("summary").textContent;
+  const msg = document.getElementById("copyMsg");
+  try { await navigator.clipboard.writeText(text); msg.textContent = "已复制"; }
+  catch (e) {
+    const r = document.createRange(); r.selectNodeContents(document.getElementById("summary"));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    msg.textContent = "已选中，按 Ctrl+C 复制";
+  }
+});
+
+// 主题切换时脑图颜色跟着变
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", renderMap);
+new MutationObserver(renderMap).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+// ---------- 启动 ----------
+loadLocal();
+buildCards();
+renderAll();
+
+(async () => {
+  const handle = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
+  if (!handle) {
+    syncEl.textContent = "未连接云端存储，选择只保存在这个浏览器";
+    syncEl.className = "sync local";
+    return;
+  }
+  db = handle;
+  let first = { picks: false, mine: false };
+  const loadingTimer = setTimeout(() => {
+    syncEl.textContent = "存储暂时连不上，修改会先保存在本浏览器";
+    syncEl.className = "sync local";
+  }, 10000);
+  const settle = () => {
+    if (first.picks && first.mine) {
+      clearTimeout(loadingTimer);
+      syncEl.textContent = "已自动保存，Claude 明天可以读到";
+      syncEl.className = "sync ok";
+    }
+  };
+  db.collection("picks").onSnapshot(snap => {
+    snap.docs.forEach(d => {
+      const v = d.data() || {};
+      picks[d.id] = { status: v.status || "", note: v.note || "" };
+    });
+    if (!snap.metadata.fromCache) first.picks = true;
+    saveLocal(); renderAll(); settle();
+  }, err => { clearTimeout(loadingTimer); syncEl.textContent = "存储不可用（" + err.code + "），选择只保存在这个浏览器"; syncEl.className = "sync local"; db = null; });
+  db.collection("mine").orderBy("createdAt").onSnapshot(snap => {
+    mine = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+    if (!snap.metadata.fromCache) first.mine = true;
+    saveLocal(); renderMine(); renderTally(); renderSummary(); settle();
+  }, () => {});
+})();
+</script>

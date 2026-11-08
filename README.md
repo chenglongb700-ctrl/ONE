@@ -71,3 +71,7 @@ client/src/
 | GET | `/stats` | 首页统计 |
 | GET | `/habits/checks?from=&to=` | 一段时间内的打卡记录 |
 | POST | `/habits/:id/toggle` `{date}` | 打卡 / 取消打卡 |
+
+## 下一步
+
+功能构思见 [docs/IDEAS.md](docs/IDEAS.md)（交互版页面：`docs/ideas-board.html`）。
