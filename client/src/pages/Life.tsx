@@ -12,11 +12,11 @@ export default function Life() {
       <PageHeader
         title="🌿 生活"
         action={
-          <div className="flex rounded-lg bg-stone-200 p-1 text-sm">
+          <div className="flex glass rounded-lg p-1 text-sm">
             {(["list", "money"] as const).map((k) => (
               <button
                 key={k}
-                className={`rounded-md px-3 py-1 transition ${tab === k ? "bg-white shadow-sm" : "text-stone-600"}`}
+                className={`rounded-md px-3 py-1 transition ${tab === k ? "bg-white/80 shadow-sm" : "text-slate-600"}`}
                 onClick={() => setTab(k)}
               >
                 {k === "list" ? "📋 生活清单" : "💰 记账"}
@@ -87,22 +87,22 @@ function LifeList() {
           <button
             key={c}
             onClick={() => setFilter(c)}
-            className={`rounded-full px-3 py-1 text-xs transition ${filter === c ? "bg-emerald-600 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-100"}`}
+            className={`rounded-full px-3 py-1 text-xs transition ${filter === c ? "bg-emerald-600 text-white" : "bg-white/50 text-slate-600 ring-1 ring-white/70 backdrop-blur-md hover:bg-white/70"}`}
           >
             {c}
           </button>
         ))}
       </div>
 
-      <ul className="card divide-y divide-stone-100 p-0">
-        {shown.length === 0 && <li className="p-6 text-center text-sm text-stone-400">清单是空的 🎉</li>}
+      <ul className="card divide-y divide-white/60 p-0">
+        {shown.length === 0 && <li className="p-6 text-center text-sm text-slate-400">清单是空的 🎉</li>}
         {shown.map((it) => (
           <li key={it.id} className="group flex items-center gap-3 px-4 py-3">
             <input type="checkbox" className="size-4 accent-emerald-600" checked={it.done} onChange={() => toggle(it)} />
-            <span className={`flex-1 text-sm ${it.done ? "text-stone-400 line-through" : ""}`}>{it.title}</span>
+            <span className={`flex-1 text-sm ${it.done ? "text-slate-400 line-through" : ""}`}>{it.title}</span>
             <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700">{it.category}</span>
             {it.date && (
-              <span className={`text-xs ${!it.done && it.date < t0 ? "text-red-600" : it.date === t0 ? "font-medium text-emerald-700" : "text-stone-500"}`}>
+              <span className={`text-xs ${!it.done && it.date < t0 ? "text-red-600" : it.date === t0 ? "font-medium text-emerald-700" : "text-slate-500"}`}>
                 {it.date === t0 ? "今天" : it.date}
               </span>
             )}
@@ -176,9 +176,9 @@ function Money() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="card"><div className="text-xs text-stone-500">收入</div><div className="mt-1 text-xl font-bold text-emerald-600">+{income.toFixed(2)}</div></div>
-        <div className="card"><div className="text-xs text-stone-500">支出</div><div className="mt-1 text-xl font-bold text-red-600">-{expense.toFixed(2)}</div></div>
-        <div className="card"><div className="text-xs text-stone-500">结余</div><div className="mt-1 text-xl font-bold">{(income - expense).toFixed(2)}</div></div>
+        <div className="card"><div className="text-xs text-slate-500">收入</div><div className="mt-1 text-xl font-bold text-emerald-600">+{income.toFixed(2)}</div></div>
+        <div className="card"><div className="text-xs text-slate-500">支出</div><div className="mt-1 text-xl font-bold text-red-600">-{expense.toFixed(2)}</div></div>
+        <div className="card"><div className="text-xs text-slate-500">结余</div><div className="mt-1 text-xl font-bold">{(income - expense).toFixed(2)}</div></div>
       </div>
 
       {byCat.length > 0 && (
@@ -186,23 +186,23 @@ function Money() {
           <h3 className="text-sm font-semibold">支出分类</h3>
           {byCat.map(([cat, amt]) => (
             <div key={cat} className="flex items-center gap-3 text-sm">
-              <span className="w-12 shrink-0 text-stone-600">{cat}</span>
-              <div className="h-2 flex-1 rounded-full bg-stone-100">
+              <span className="w-12 shrink-0 text-slate-600">{cat}</span>
+              <div className="h-2 flex-1 rounded-full bg-white/60">
                 <div className="h-2 rounded-full bg-sky-500" style={{ width: `${(amt / expense) * 100}%` }} />
               </div>
-              <span className="w-20 shrink-0 text-right tabular-nums text-stone-600">{amt.toFixed(2)}</span>
+              <span className="w-20 shrink-0 text-right tabular-nums text-slate-600">{amt.toFixed(2)}</span>
             </div>
           ))}
         </div>
       )}
 
-      <ul className="card divide-y divide-stone-100 p-0">
-        {monthList.length === 0 && <li className="p-6 text-center text-sm text-stone-400">本月还没有记录</li>}
+      <ul className="card divide-y divide-white/60 p-0">
+        {monthList.length === 0 && <li className="p-6 text-center text-sm text-slate-400">本月还没有记录</li>}
         {monthList.map((x) => (
           <li key={x.id} className="group flex items-center gap-3 px-4 py-3 text-sm">
-            <span className="w-24 shrink-0 text-xs text-stone-500">{x.date}</span>
-            <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{x.category}</span>
-            <span className="flex-1 truncate text-stone-600">{x.note}</span>
+            <span className="w-24 shrink-0 text-xs text-slate-500">{x.date}</span>
+            <span className="rounded bg-white/70 px-1.5 py-0.5 text-xs">{x.category}</span>
+            <span className="flex-1 truncate text-slate-600">{x.note}</span>
             <span className={`tabular-nums font-medium ${x.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
               {x.type === "income" ? "+" : "-"}{x.amount.toFixed(2)}
             </span>
@@ -217,12 +217,12 @@ function Money() {
       {editing && (
         <Modal title={editing.id ? "编辑记录" : "记一笔"} onClose={() => setEditing(null)}>
           <form onSubmit={save} className="space-y-3">
-            <div className="flex rounded-lg bg-stone-100 p-1 text-sm">
+            <div className="flex rounded-lg bg-white/50 p-1 text-sm">
               {(["expense", "income"] as const).map((t) => (
                 <button
                   type="button"
                   key={t}
-                  className={`flex-1 rounded-md py-1.5 transition ${editing.draft.type === t ? "bg-white shadow-sm" : "text-stone-500"}`}
+                  className={`flex-1 rounded-md py-1.5 transition ${editing.draft.type === t ? "bg-white/80 shadow-sm" : "text-slate-500"}`}
                   onClick={() => set("type", t)}
                 >
                   {t === "expense" ? "支出" : "收入"}

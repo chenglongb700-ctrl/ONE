@@ -5,13 +5,13 @@ import Modal, { ErrorText, PageHeader } from "../components/Modal";
 export const PRIORITY: Record<Priority, { label: string; cls: string }> = {
   high: { label: "高", cls: "bg-red-100 text-red-700" },
   medium: { label: "中", cls: "bg-amber-100 text-amber-700" },
-  low: { label: "低", cls: "bg-stone-100 text-stone-600" },
+  low: { label: "低", cls: "bg-slate-100 text-slate-600" },
 };
 
 const COLUMNS: { key: TaskStatus; label: string; tone: string }[] = [
-  { key: "todo", label: "📝 待办", tone: "bg-stone-100" },
-  { key: "doing", label: "🚧 进行中", tone: "bg-indigo-50" },
-  { key: "done", label: "✅ 已完成", tone: "bg-emerald-50" },
+  { key: "todo", label: "📝 待办", tone: "bg-white/30" },
+  { key: "doing", label: "🚧 进行中", tone: "bg-indigo-100/40" },
+  { key: "done", label: "✅ 已完成", tone: "bg-emerald-100/40" },
 ];
 
 type Draft = Omit<Task, "id" | "updated_at">;
@@ -73,10 +73,10 @@ export default function Work() {
         {COLUMNS.map((col, ci) => {
           const list = tasks.filter((t) => t.status === col.key);
           return (
-            <section key={col.key} className={`rounded-xl p-3 ${col.tone}`}>
+            <section key={col.key} className={`rounded-2xl border border-white/50 p-3 backdrop-blur-md ${col.tone}`}>
               <h2 className="mb-3 flex items-center justify-between px-1 text-sm font-semibold">
                 {col.label}
-                <span className="rounded-full bg-white px-2 text-xs text-stone-500">{list.length}</span>
+                <span className="rounded-full bg-white/70 px-2 text-xs text-slate-500">{list.length}</span>
               </h2>
               <div className="space-y-2">
                 {list.map((t) => {
@@ -84,12 +84,12 @@ export default function Work() {
                   return (
                     <article key={t.id} className="card group p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className={`text-sm font-medium ${t.status === "done" ? "text-stone-400 line-through" : ""}`}>{t.title}</h3>
+                        <h3 className={`text-sm font-medium ${t.status === "done" ? "text-slate-400 line-through" : ""}`}>{t.title}</h3>
                         <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${PRIORITY[t.priority].cls}`}>{PRIORITY[t.priority].label}</span>
                       </div>
-                      {t.description && <p className="mt-1 line-clamp-2 text-xs text-stone-500">{t.description}</p>}
+                      {t.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{t.description}</p>}
                       {t.due_date && (
-                        <p className={`mt-2 text-xs ${overdue ? "font-medium text-red-600" : "text-stone-500"}`}>
+                        <p className={`mt-2 text-xs ${overdue ? "font-medium text-red-600" : "text-slate-500"}`}>
                           📅 {t.due_date} {overdue && "已逾期"}
                         </p>
                       )}
@@ -114,7 +114,7 @@ export default function Work() {
                     </article>
                   );
                 })}
-                {list.length === 0 && <p className="py-6 text-center text-xs text-stone-400">空</p>}
+                {list.length === 0 && <p className="py-6 text-center text-xs text-slate-400">空</p>}
               </div>
             </section>
           );

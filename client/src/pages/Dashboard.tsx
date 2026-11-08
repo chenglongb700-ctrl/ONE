@@ -16,12 +16,12 @@ function greeting() {
 function StatCard({ to, icon, label, value, hint, tone }: { to: string; icon: string; label: string; value: string | number; hint: string; tone: string }) {
   return (
     <Link to={to} className={`card block transition hover:-translate-y-0.5 hover:shadow-md ${tone}`}>
-      <div className="flex items-center gap-2 text-sm text-stone-500">
+      <div className="flex items-center gap-2 text-sm text-slate-500">
         <span>{icon}</span>
         {label}
       </div>
       <div className="mt-2 text-3xl font-bold">{value}</div>
-      <div className="mt-1 text-xs text-stone-500">{hint}</div>
+      <div className="mt-1 text-xs text-slate-500">{hint}</div>
     </Link>
   );
 }
@@ -42,11 +42,11 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold">
           {greeting()}，{user?.username} 👋
         </h1>
-        <p className="mt-1 text-sm text-stone-500">今天是 {dateStr}</p>
+        <p className="mt-1 text-sm text-slate-500">今天是 {dateStr}</p>
       </div>
 
       {!s ? (
-        <p className="text-stone-400">加载中…</p>
+        <p className="text-slate-400">加载中…</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -88,13 +88,13 @@ export default function Dashboard() {
             <section className="card">
               <h2 className="mb-3 font-semibold">🚧 进行中的工作</h2>
               {s.doingTasks.length === 0 ? (
-                <p className="text-sm text-stone-400">暂无进行中的任务</p>
+                <p className="text-sm text-slate-400">暂无进行中的任务</p>
               ) : (
-                <ul className="divide-y divide-stone-100">
+                <ul className="divide-y divide-white/60">
                   {s.doingTasks.map((t) => (
                     <li key={t.id} className="flex items-center justify-between py-2 text-sm">
                       <span>{t.title}</span>
-                      <span className="flex items-center gap-2 text-xs text-stone-500">
+                      <span className="flex items-center gap-2 text-xs text-slate-500">
                         {t.due_date && <span>📅 {t.due_date}</span>}
                         <span className={`rounded px-1.5 py-0.5 ${PRIORITY[t.priority].cls}`}>{PRIORITY[t.priority].label}</span>
                       </span>
@@ -106,17 +106,17 @@ export default function Dashboard() {
             <section className="card">
               <h2 className="mb-3 font-semibold">📖 最近的感悟</h2>
               {s.recentJournals.length === 0 ? (
-                <p className="text-sm text-stone-400">
+                <p className="text-sm text-slate-400">
                   还没有记录，<Link to="/journal" className="underline">写下第一篇</Link>
                 </p>
               ) : (
-                <ul className="divide-y divide-stone-100">
+                <ul className="divide-y divide-white/60">
                   {s.recentJournals.map((j) => (
                     <li key={j.id} className="flex items-center justify-between py-2 text-sm">
                       <span>
                         {j.mood} {j.title}
                       </span>
-                      <span className="text-xs text-stone-500">{j.date}</span>
+                      <span className="text-xs text-slate-500">{j.date}</span>
                     </li>
                   ))}
                 </ul>

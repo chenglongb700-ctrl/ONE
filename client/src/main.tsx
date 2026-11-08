@@ -12,7 +12,7 @@ import JournalPage from "./pages/Journal";
 
 function Protected() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="grid h-screen place-items-center text-stone-400">加载中…</div>;
+  if (loading) return <div className="grid h-screen place-items-center text-slate-400">加载中…</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <Layout />;
 }
@@ -26,6 +26,11 @@ function GuestOnly({ mode }: { mode: "login" | "register" }) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <div className="bg-blobs" aria-hidden>
+      <span className="left-[-8rem] top-[-6rem] size-[28rem] bg-indigo-300" />
+      <span className="right-[-6rem] top-[20%] size-[24rem] bg-pink-300 [animation-delay:-6s]" />
+      <span className="bottom-[-8rem] left-[30%] size-[30rem] bg-emerald-200 [animation-delay:-12s]" />
+    </div>
     <AuthProvider>
       <BrowserRouter>
         <Routes>

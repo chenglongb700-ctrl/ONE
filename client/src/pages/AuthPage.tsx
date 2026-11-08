@@ -29,12 +29,12 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-stone-100 to-amber-50 p-4">
+    <div className="grid min-h-screen place-items-center p-4">
       <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4 p-8">
         <div className="text-center">
           <div className="text-4xl">🌱</div>
           <h1 className="mt-2 text-xl font-bold">{isLogin ? "欢迎回来" : "创建账号"}</h1>
-          <p className="mt-1 text-sm text-stone-500">记录工作、生活与每一次感悟</p>
+          <p className="mt-1 text-sm text-slate-500">记录工作、生活与每一次感悟</p>
         </div>
         <div>
           <label className="label">用户名</label>
@@ -54,9 +54,9 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
         <button className="btn-primary w-full" disabled={busy}>
           {busy ? "请稍候…" : isLogin ? "登录" : "注册"}
         </button>
-        <p className="text-center text-sm text-stone-500">
+        <p className="text-center text-sm text-slate-500">
           {isLogin ? "还没有账号？" : "已有账号？"}
-          <Link className="ml-1 font-medium text-stone-800 underline" to={isLogin ? "/register" : "/login"}>
+          <Link className="ml-1 font-medium text-slate-800 underline" to={isLogin ? "/register" : "/login"}>
             {isLogin ? "去注册" : "去登录"}
           </Link>
         </p>

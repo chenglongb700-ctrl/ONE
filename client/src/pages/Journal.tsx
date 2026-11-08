@@ -75,7 +75,7 @@ export default function JournalPage() {
               <button
                 key={t}
                 onClick={() => setTag(tag === t ? null : t)}
-                className={`rounded-full px-3 py-1 text-xs transition ${tag === t ? "bg-amber-500 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-100"}`}
+                className={`rounded-full px-3 py-1 text-xs transition ${tag === t ? "bg-amber-500 text-white" : "bg-white/50 text-slate-600 ring-1 ring-white/70 backdrop-blur-md hover:bg-white/70"}`}
               >
                 #{t}
               </button>
@@ -85,17 +85,17 @@ export default function JournalPage() {
       </div>
 
       {shown.length === 0 ? (
-        <div className="card py-12 text-center text-sm text-stone-400">{list.length ? "没有匹配的记录" : "还没有感悟，写下今天的想法吧 ✨"}</div>
+        <div className="card py-12 text-center text-sm text-slate-400">{list.length ? "没有匹配的记录" : "还没有感悟，写下今天的想法吧 ✨"}</div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((j) => (
             <article key={j.id} className="card cursor-pointer border-t-4 border-t-amber-300 transition hover:-translate-y-0.5 hover:shadow-md" onClick={() => setViewing(j)}>
-              <div className="flex items-center justify-between text-xs text-stone-500">
+              <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>{j.date}</span>
                 <span className="text-xl">{j.mood}</span>
               </div>
               <h3 className="mt-2 font-semibold">{j.title}</h3>
-              <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-sm text-stone-600">{j.content}</p>
+              <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-sm text-slate-600">{j.content}</p>
               {j.tags && (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {splitTags(j.tags).map((t) => (
@@ -110,8 +110,8 @@ export default function JournalPage() {
 
       {viewing && (
         <Modal title={`${viewing.mood} ${viewing.title}`} onClose={() => setViewing(null)}>
-          <p className="mb-3 text-xs text-stone-500">{viewing.date}</p>
-          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">{viewing.content || <span className="text-stone-400">（无内容）</span>}</div>
+          <p className="mb-3 text-xs text-slate-500">{viewing.date}</p>
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">{viewing.content || <span className="text-slate-400">（无内容）</span>}</div>
           <div className="mt-4 flex justify-end gap-2">
             <button className="btn-danger" onClick={() => remove(viewing)}>删除</button>
             <button className="btn-primary" onClick={() => openEdit(viewing)}>编辑</button>
@@ -140,7 +140,7 @@ export default function JournalPage() {
                     type="button"
                     key={m}
                     onClick={() => set("mood", m)}
-                    className={`rounded-lg p-1.5 text-xl transition ${editing.draft.mood === m ? "bg-amber-100 ring-2 ring-amber-400" : "hover:bg-stone-100"}`}
+                    className={`rounded-lg p-1.5 text-xl transition ${editing.draft.mood === m ? "bg-amber-100 ring-2 ring-amber-400" : "hover:bg-white/60"}`}
                   >
                     {m}
                   </button>
