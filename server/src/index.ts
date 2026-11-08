@@ -10,6 +10,8 @@ import { lifeRouter } from "./routes/life.js";
 import { expensesRouter } from "./routes/expenses.js";
 import { journalsRouter } from "./routes/journals.js";
 import { statsRouter } from "./routes/stats.js";
+import { learningRouter, learningLogsRouter } from "./routes/learning.js";
+import { habitsRouter } from "./routes/habits.js";
 
 const app = express();
 app.use(express.json());
@@ -20,6 +22,9 @@ app.use("/api/tasks", requireAuth, tasksRouter);
 app.use("/api/life", requireAuth, lifeRouter);
 app.use("/api/expenses", requireAuth, expensesRouter);
 app.use("/api/journals", requireAuth, journalsRouter);
+app.use("/api/learning", requireAuth, learningRouter);
+app.use("/api/learning-logs", requireAuth, learningLogsRouter);
+app.use("/api/habits", requireAuth, habitsRouter);
 app.use("/api/stats", requireAuth, statsRouter);
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "接口不存在" });

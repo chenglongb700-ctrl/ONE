@@ -47,5 +47,27 @@ statsRouter.get("/", (req, res) => {
 
   const journalCount = (db.prepare("SELECT COUNT(*) AS n FROM journals WHERE user_id = ?").get(uid) as { n: number }).n;
 
-  res.json({ tasks, life, money, doingTasks, recentJournals, journalCount });
+  // 本周（周一开始）学习时长
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const weekStart = d.toLocaleDateString("sv");
+  const learning = db
+    .prepare(
+      `SELECT COALESCE(SUM(minutes), 0) AS weekMinutes,
+              (SELECT COUNT(*) FROM learning_items WHERE user_id = ?1 AND status = 'active') AS active
+       FROM learning_logs WHERE user_id = ?1 AND date >= ?2`,
+    )
+    .get(uid, weekStart);
+
+  // 今日习惯：每个未归档习惯今天是否已打卡
+  const todayHabits = db
+    .prepare(
+      `SELECT h.id, h.name, h.icon, h.color,
+              EXISTS (SELECT 1 FROM habit_checks c WHERE c.habit_id = h.id AND c.date = ?) AS checked
+       FROM habits h WHERE h.user_id = ? AND h.archived = 0 ORDER BY h.id`,
+    )
+    .all(today, uid)
+    .map((h) => ({ ...h, checked: !!(h as { checked: number }).checked }));
+
+  res.json({ tasks, life, money, doingTasks, recentJournals, journalCount, learning, todayHabits, today });
 });

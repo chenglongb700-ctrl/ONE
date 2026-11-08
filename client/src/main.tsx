@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import Work from "./pages/Work";
 import Life from "./pages/Life";
 import JournalPage from "./pages/Journal";
+import Learning from "./pages/Learning";
+import Habits from "./pages/Habits";
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -39,6 +41,8 @@ createRoot(document.getElementById("root")!).render(
           <Route element={<Protected />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/work" element={<Work />} />
+            <Route path="/learning" element={<Learning />} />
+            <Route path="/habits" element={<Habits />} />
             <Route path="/life" element={<Life />} />
             <Route path="/journal" element={<JournalPage />} />
           </Route>

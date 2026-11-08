@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type Stats } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { PRIORITY } from "./Work";
+import { COLORS } from "./Habits";
 
 function greeting() {
   const h = new Date().getHours();
@@ -30,9 +31,18 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [s, setS] = useState<Stats | null>(null);
 
+  const load = () => api.get<Stats>("/stats").then(setS);
   useEffect(() => {
-    api.get<Stats>("/stats").then(setS);
+    load();
   }, []);
+
+  const toggleHabit = async (id: number) => {
+    if (!s) return;
+    setS({ ...s, todayHabits: s.todayHabits.map((h) => (h.id === id ? { ...h, checked: !h.checked } : h)) });
+    await api.post(`/habits/${id}/toggle`, { date: s.today }).catch(load);
+  };
+
+  const habitsDone = s?.todayHabits.filter((h) => h.checked).length ?? 0;
 
   const dateStr = new Date().toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" });
 
@@ -49,7 +59,7 @@ export default function Dashboard() {
         <p className="text-slate-400">加载中…</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
             <StatCard
               to="/work"
               icon="💼"
@@ -57,6 +67,22 @@ export default function Dashboard() {
               value={s.tasks.todo + s.tasks.doing}
               hint={s.tasks.overdue ? `⚠️ ${s.tasks.overdue} 项已逾期` : `已完成 ${s.tasks.done} 项`}
               tone="border-l-4 border-l-indigo-400"
+            />
+            <StatCard
+              to="/learning"
+              icon="📚"
+              label="本周学习"
+              value={(s.learning.weekMinutes / 60).toFixed(1) + " h"}
+              hint={`${s.learning.active} 个学习项目进行中`}
+              tone="border-l-4 border-l-violet-400"
+            />
+            <StatCard
+              to="/habits"
+              icon="✅"
+              label="今日打卡"
+              value={s.todayHabits.length ? `${habitsDone}/${s.todayHabits.length}` : "–"}
+              hint={s.todayHabits.length ? (habitsDone === s.todayHabits.length ? "今天全部完成 🎉" : "还差一点") : "还没有设置习惯"}
+              tone="border-l-4 border-l-rose-400"
             />
             <StatCard
               to="/life"
@@ -83,6 +109,30 @@ export default function Dashboard() {
               tone="border-l-4 border-l-amber-400"
             />
           </div>
+
+          {s.todayHabits.length > 0 && (
+            <section className="card mt-6">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="font-semibold">☀️ 今日打卡</h2>
+                <Link to="/habits" className="text-xs text-slate-500 hover:underline">查看全部 →</Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {s.todayHabits.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={() => toggleHabit(h.id)}
+                    className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${
+                      h.checked ? `${COLORS[h.color].dot} text-white shadow-sm` : "bg-white/50 text-slate-700 ring-1 ring-white/70 hover:bg-white/80"
+                    }`}
+                  >
+                    <span>{h.icon}</span>
+                    {h.name}
+                    {h.checked && <span>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <section className="card">

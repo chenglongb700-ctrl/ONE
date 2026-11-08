@@ -13,25 +13,52 @@ export function crudRouter<S extends ZodRawShape>(opts: {
   schema: ZodObject<S>;
   orderBy: string;
   touchUpdatedAt?: boolean;
+  /** SELECT 的列，可以带子查询算出额外字段，默认 "*" */
+  select?: string;
+  /** 允许 GET 时用 ?列名=值 过滤的列 */
+  filters?: string[];
+  /** 外键列 → 被引用的表：写入前检查被引用的记录也属于当前用户 */
+  ownedRefs?: Record<string, string>;
   toDb?: (data: Row) => Row;
   fromDb?: (row: Row) => Row;
 }) {
   const { table, schema, orderBy } = opts;
+  const select = opts.select ?? "*";
   const toDb = opts.toDb ?? ((d) => d);
   const fromDb = opts.fromDb ?? ((r) => ({ ...r }));
   const idSchema = z.coerce.number().int().positive();
   const r = Router();
 
   const getOne = (id: number, uid: number) =>
-    db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(id, uid) as Row | undefined;
+    db.prepare(`SELECT ${select} FROM ${table} WHERE id = ? AND user_id = ?`).get(id, uid) as Row | undefined;
+
+  // 防止把数据挂到别人的记录下面，例如给别人的学习项目添加日志
+  const checkRefs = (data: Row, uid: number) => {
+    for (const [col, refTable] of Object.entries(opts.ownedRefs ?? {})) {
+      if (data[col] === undefined) continue;
+      const ok = db.prepare(`SELECT 1 FROM ${refTable} WHERE id = ? AND user_id = ?`).get(data[col] as number, uid);
+      if (!ok) return false;
+    }
+    return true;
+  };
 
   r.get("/", (req, res) => {
-    const rows = db.prepare(`SELECT * FROM ${table} WHERE user_id = ? ORDER BY ${orderBy}`).all(req.userId!) as Row[];
+    const where = ["user_id = ?"];
+    const params: (string | number)[] = [req.userId!];
+    for (const col of opts.filters ?? []) {
+      const v = req.query[col];
+      if (typeof v === "string" && v !== "") {
+        where.push(`${col} = ?`);
+        params.push(v);
+      }
+    }
+    const rows = db.prepare(`SELECT ${select} FROM ${table} WHERE ${where.join(" AND ")} ORDER BY ${orderBy}`).all(...params) as Row[];
     res.json(rows.map(fromDb));
   });
 
   r.post("/", (req, res) => {
     const data = toDb(schema.parse(req.body) as Row);
+    if (!checkRefs(data, req.userId!)) return void res.status(404).json({ error: "关联的记录不存在" });
     const cols = Object.keys(data);
     const sql = `INSERT INTO ${table} (user_id${cols.map((c) => ", " + c).join("")}) VALUES (?${cols.map(() => ", ?").join("")})`;
     const result = db.prepare(sql).run(req.userId!, ...(Object.values(data) as never[]));
@@ -44,6 +71,7 @@ export function crudRouter<S extends ZodRawShape>(opts: {
     // partial()：只更新传入的字段；去掉 default 生成的 undefined
     const parsed = schema.partial().parse(req.body) as Row;
     const data = toDb(Object.fromEntries(Object.entries(parsed).filter(([, v]) => v !== undefined)));
+    if (!checkRefs(data, req.userId!)) return void res.status(404).json({ error: "关联的记录不存在" });
     const cols = Object.keys(data);
     if (cols.length) {
       const sets = cols.map((c) => `${c} = ?`);

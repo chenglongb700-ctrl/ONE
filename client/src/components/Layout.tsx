@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 const nav = [
   { to: "/", label: "总览", icon: "🏠" },
   { to: "/work", label: "工作", icon: "💼" },
+  { to: "/learning", label: "学习", icon: "📚" },
+  { to: "/habits", label: "习惯", icon: "✅" },
   { to: "/life", label: "生活", icon: "🌿" },
   { to: "/journal", label: "感悟", icon: "✍️" },
 ];

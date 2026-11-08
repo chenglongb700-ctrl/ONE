@@ -57,8 +57,70 @@ CREATE TABLE IF NOT EXISTS journals (
   date TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
+-- 学习项目：一本书、一门课、一项技能
+CREATE TABLE IF NOT EXISTS learning_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'book' CHECK (kind IN ('book','course','skill','other')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('planned','active','paused','done')),
+  goal TEXT NOT NULL DEFAULT '',
+  progress REAL NOT NULL DEFAULT 0,
+  total REAL,                -- 为空表示不按进度计（例如"学英语"）
+  unit TEXT NOT NULL DEFAULT '章',
+  target_date TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+-- 学习日志：一个学习项目对应多条日志（一对多）
+CREATE TABLE IF NOT EXISTS learning_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id INTEGER NOT NULL REFERENCES learning_items(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  minutes INTEGER NOT NULL DEFAULT 0,
+  content TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+-- 习惯
+CREATE TABLE IF NOT EXISTS habits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL DEFAULT '✅',
+  color TEXT NOT NULL DEFAULT 'emerald',
+  archived INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+-- 打卡记录：UNIQUE(habit_id, date) 保证同一习惯同一天只能打一次卡
+CREATE TABLE IF NOT EXISTS habit_checks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  UNIQUE (habit_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_learning_user ON learning_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_llogs_item ON learning_logs(item_id, date);
+CREATE INDEX IF NOT EXISTS idx_llogs_user ON learning_logs(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_habits_user ON habits(user_id);
+CREATE INDEX IF NOT EXISTS idx_checks_user ON habit_checks(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_life_user ON life_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_exp_user ON expenses(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_journal_user ON journals(user_id, date);
 `);
+
+// ---------- 迁移 ----------
+// CREATE TABLE IF NOT EXISTS 不会修改已经存在的表。
+// 表结构变化后，用 ALTER TABLE 给旧数据库补上缺少的列（只加列，不删数据）。
+function ensureColumn(table: string, column: string, definition: string) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`[db] migrated: ${table}.${column}`);
+  }
+}
+
+ensureColumn("habits", "color", "TEXT NOT NULL DEFAULT 'emerald'");
