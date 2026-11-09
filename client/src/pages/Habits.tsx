@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { addDays, api, today, weekdayIndex, type Habit, type HabitCheck, type HabitColor } from "../api";
+import { Archive, Check, ChevronDown, CircleCheckBig, Flame, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
+import { confirmDialog } from "../components/Confirm";
 
 // Tailwind 只会生成源码里完整出现过的类名，所以颜色要写成完整字符串
 export const COLORS: Record<HabitColor, { name: string; dot: string; ring: string; levels: [string, string, string, string] }> = {
@@ -83,7 +86,12 @@ export default function Habits() {
     setChecks((cs) => (has ? cs.filter((c) => !(c.habit_id === h.id && c.date === date)) : [...cs, { habit_id: h.id, date }]));
     try {
       await api.post(`/habits/${h.id}/toggle`, { date });
-    } catch {
+      if (!has && date === t0) {
+        const s = streaks(new Set([...datesOf(h.id), date]), t0);
+        if (s.current >= 3) toast.success(`${h.name}：已连续 ${s.current} 天`, { icon: <Flame className="size-4 text-orange-500" /> });
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
       load();
     }
   };
@@ -95,6 +103,7 @@ export default function Habits() {
     try {
       if (editing.id) await api.put(`/habits/${editing.id}`, editing.draft);
       else await api.post("/habits", editing.draft);
+      toast.success(editing.id ? "习惯已更新" : "新习惯已添加，从今天开始吧");
       setEditing(null);
       load();
     } catch (err) {
@@ -103,14 +112,29 @@ export default function Habits() {
   };
 
   const setArchived = async (h: Habit, value: boolean) => {
-    await api.put(`/habits/${h.id}`, { archived: value });
+    try {
+      await api.put(`/habits/${h.id}`, { archived: value });
+      toast.success(value ? `已归档「${h.name}」，打卡记录会保留` : `已恢复「${h.name}」`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     if (focus === h.id) setFocus("all");
     load();
   };
 
   const remove = async (h: Habit) => {
-    if (!confirm(`永久删除「${h.name}」和它的全部打卡记录？只想暂时不用的话，可以选择归档。`)) return;
-    await api.del(`/habits/${h.id}`);
+    const ok = await confirmDialog({
+      title: "永久删除这个习惯？",
+      message: `「${h.name}」和它的全部打卡记录都会被删除，无法恢复。只想暂时不用的话，保留归档就好。`,
+      confirmText: "永久删除",
+    });
+    if (!ok) return;
+    try {
+      await api.del(`/habits/${h.id}`);
+      toast.success("习惯已删除");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
@@ -144,11 +168,13 @@ export default function Habits() {
   return (
     <div>
       <PageHeader
-        title="✅ 习惯"
+        title="习惯"
+        icon={CircleCheckBig}
+        tone="bg-rose-500"
         sub="每天一点点，看得见的坚持"
         action={
           <button className="btn-primary" onClick={() => { setError(""); setEditing({ draft: { name: "", icon: "✅", color: "emerald" } }); }}>
-            + 新习惯
+            <Plus className="size-4" /> 新习惯
           </button>
         }
       />
@@ -195,26 +221,35 @@ export default function Habits() {
                           <button
                             onClick={() => toggle(h, d)}
                             aria-label={`${h.name} ${d} ${on ? "已打卡，点击取消" : "未打卡，点击打卡"}`}
-                            className={`mx-auto grid size-8 place-items-center rounded-full text-sm text-white transition ${
+                            className={`mx-auto grid size-8 place-items-center rounded-full text-white transition active:scale-90 ${
                               on ? `${c.dot} shadow-sm` : `bg-white/50 ring-1 ring-inset ring-slate-300/70 hover:bg-white/80 ${d === t0 ? `ring-2 ${c.ring}` : ""}`
                             }`}
                           >
-                            {on && "✓"}
+                            {on && <Check className="size-4" strokeWidth={3} />}
                           </button>
                         </td>
                       );
                     })}
                     <td className="px-3 py-2.5 text-right tabular-nums">
-                      {s.current > 0 ? <span className="font-semibold">🔥 {s.current}</span> : <span className="text-slate-400">0</span>}
+                      {s.current > 0 ? (
+                        <span className="inline-flex items-center gap-1 font-semibold">
+                          <Flame className="size-4 text-orange-500" />
+                          {s.current}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">0</span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-slate-500">{s.longest}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-slate-500">{yearCount}</td>
                     <td className="pr-3 text-right">
                       <button
-                        className="btn-ghost px-2 py-1 text-xs md:opacity-0 md:group-hover:opacity-100"
+                        className="btn-ghost p-1.5 md:opacity-0 md:group-hover:opacity-100"
+                        title="编辑"
+                        aria-label={`编辑 ${h.name}`}
                         onClick={() => { setError(""); setEditing({ id: h.id, draft: { name: h.name, icon: h.icon, color: h.color } }); }}
                       >
-                        编辑
+                        <Pencil className="size-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -290,8 +325,9 @@ export default function Habits() {
       {/* 已归档 */}
       {archived.length > 0 && (
         <section>
-          <button className="btn-ghost text-xs" onClick={() => setShowArchived(!showArchived)}>
-            已归档 {archived.length} 个 {showArchived ? "▲" : "▼"}
+          <button className="btn-ghost text-xs" onClick={() => setShowArchived(!showArchived)} aria-expanded={showArchived}>
+            <Archive className="size-3.5" /> 已归档 {archived.length} 个
+            <ChevronDown className={`size-3.5 transition ${showArchived ? "rotate-180" : ""}`} />
           </button>
           {showArchived && (
             <ul className="card mt-2 divide-y divide-white/60 p-0">
@@ -300,8 +336,8 @@ export default function Habits() {
                   <span className="text-lg">{h.icon}</span>
                   <span className="flex-1 text-slate-600">{h.name}</span>
                   <span className="text-xs text-slate-400">共 {datesOf(h.id).size} 次（近一年）</span>
-                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setArchived(h, false)}>恢复</button>
-                  <button className="btn-danger px-2 py-1 text-xs" onClick={() => remove(h)}>删除</button>
+                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setArchived(h, false)}><RotateCcw className="size-3.5" /> 恢复</button>
+                  <button className="btn-danger px-2 py-1 text-xs" onClick={() => remove(h)}><Trash2 className="size-3.5" /> 删除</button>
                 </li>
               ))}
             </ul>
@@ -357,7 +393,7 @@ export default function Habits() {
                     setArchived(h, true);
                   }}
                 >
-                  归档
+                  <Archive className="size-4" /> 归档
                 </button>
               )}
               <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>取消</button>

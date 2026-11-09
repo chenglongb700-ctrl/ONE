@@ -9,13 +9,17 @@ import {
   type LearningLog,
   type LearningStatus,
 } from "../api";
+import { BookOpen, CalendarClock, ChevronDown, Clock, GraduationCap, Pencil, Pin, Plus, Target, Trash2, Wrench, X, type LucideIcon } from "lucide-react";
+import { toast } from "sonner";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
+import { confirmDialog } from "../components/Confirm";
+import { AnimatedDiv, AnimatedUl } from "../components/Animated";
 
-const KINDS: Record<LearningKind, { label: string; icon: string; unit: string }> = {
-  book: { label: "书", icon: "📖", unit: "章" },
-  course: { label: "课程", icon: "🎓", unit: "集" },
-  skill: { label: "技能", icon: "🛠️", unit: "%" },
-  other: { label: "其他", icon: "📌", unit: "项" },
+const KINDS: Record<LearningKind, { label: string; icon: LucideIcon; cls: string; unit: string }> = {
+  book: { label: "书", icon: BookOpen, cls: "bg-violet-100 text-violet-600", unit: "章" },
+  course: { label: "课程", icon: GraduationCap, cls: "bg-sky-100 text-sky-600", unit: "集" },
+  skill: { label: "技能", icon: Wrench, cls: "bg-amber-100 text-amber-600", unit: "%" },
+  other: { label: "其他", icon: Pin, cls: "bg-slate-200/70 text-slate-600", unit: "项" },
 };
 
 const STATUSES: Record<LearningStatus, { label: string; cls: string }> = {
@@ -82,6 +86,7 @@ export default function Learning() {
     try {
       if (editing.id) await api.put(`/learning/${editing.id}`, editing.draft);
       else await api.post("/learning", editing.draft);
+      toast.success(editing.id ? "已保存修改" : "学习项目已创建");
       setEditing(null);
       load();
     } catch (err) {
@@ -90,8 +95,14 @@ export default function Learning() {
   };
 
   const removeItem = async (it: LearningItem) => {
-    if (!confirm(`删除「${it.title}」？它的 ${logs.filter((l) => l.item_id === it.id).length} 条学习日志也会一起删除。`)) return;
-    await api.del(`/learning/${it.id}`);
+    const n = logs.filter((l) => l.item_id === it.id).length;
+    if (!(await confirmDialog({ title: "删除学习项目？", message: `「${it.title}」${n ? `和它的 ${n} 条学习日志` : ""}会被删除，无法恢复。` }))) return;
+    try {
+      await api.del(`/learning/${it.id}`);
+      toast.success("学习项目已删除");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
@@ -116,6 +127,8 @@ export default function Learning() {
       if (logging.markDone) patch.status = "done";
       else if (item.status === "planned") patch.status = "active"; // 开始学了，自动从"计划中"变成"进行中"
       if (Object.keys(patch).length) await api.put(`/learning/${item.id}`, patch);
+      if (logging.markDone) toast.success(`学完了「${item.title}」，了不起！`);
+      else toast.success(`记下 ${fmtMinutes(logging.minutes)} 学习`);
       setLogging(null);
       load();
     } catch (err) {
@@ -124,19 +137,26 @@ export default function Learning() {
   };
 
   const removeLog = async (l: LearningLog) => {
-    if (!confirm("删除这条学习日志？")) return;
-    await api.del(`/learning-logs/${l.id}`);
+    if (!(await confirmDialog({ title: "删除这条学习日志？", message: `${l.date} · ${fmtMinutes(l.minutes)}${l.content ? ` · ${l.content.slice(0, 40)}` : ""}` }))) return;
+    try {
+      await api.del(`/learning-logs/${l.id}`);
+      toast.success("日志已删除");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
   return (
     <div>
       <PageHeader
-        title="📚 学习"
+        title="学习"
+        icon={BookOpen}
+        tone="bg-violet-500"
         sub="书、课程、技能，记录每一次投入"
         action={
           <button className="btn-primary" onClick={() => { setError(""); setEditing({ draft: { ...emptyItem } }); }}>
-            + 新学习项目
+            <Plus className="size-4" /> 新学习项目
           </button>
         }
       />
@@ -185,7 +205,7 @@ export default function Learning() {
           {items.length ? "这个分类下还没有学习项目" : "还没有学习项目。添加一本正在读的书，或一门正在上的课吧"}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <AnimatedDiv className="grid gap-4 md:grid-cols-2">
           {shown.map((it) => {
             const pct = it.total ? Math.min(100, (it.progress / it.total) * 100) : null;
             const late = it.status !== "done" && it.target_date && it.target_date < t0;
@@ -193,7 +213,14 @@ export default function Learning() {
             return (
               <article key={it.id} className="card flex flex-col gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl leading-none">{KINDS[it.kind].icon}</span>
+                  {(() => {
+                    const K = KINDS[it.kind];
+                    return (
+                      <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${K.cls}`} title={K.label}>
+                        <K.icon className="size-[18px]" />
+                      </span>
+                    );
+                  })()}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold">{it.title}</h3>
@@ -218,11 +245,12 @@ export default function Learning() {
                 )}
 
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                  <span>⏱ 累计 {fmtMinutes(it.total_minutes)}</span>
-                  {it.last_date && <span>最近 {it.last_date === t0 ? "今天" : it.last_date}</span>}
+                  <span className="flex items-center gap-1"><Clock className="size-3.5" />累计 {fmtMinutes(it.total_minutes)}</span>
+                  {it.last_date && <span className="flex items-center gap-1"><CalendarClock className="size-3.5" />最近 {it.last_date === t0 ? "今天" : it.last_date}</span>}
                   {it.target_date && (
-                    <span className={late ? "font-medium text-red-600" : ""}>
-                      🎯 {it.target_date}
+                    <span className={`flex items-center gap-1 ${late ? "font-medium text-red-600" : ""}`}>
+                      <Target className="size-3.5" />
+                      {it.target_date}
                       {late && " 已超期"}
                     </span>
                   )}
@@ -231,39 +259,40 @@ export default function Learning() {
                 <div className="flex flex-wrap items-center gap-1">
                   {it.status !== "done" && (
                     <button className="btn-primary px-2.5 py-1 text-xs" onClick={() => openLog(it)}>
-                      + 记录学习
+                      <Plus className="size-3.5" /> 记录学习
                     </button>
                   )}
-                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setOpenLogs(openLogs === it.id ? null : it.id)}>
-                    日志 {itemLogs.length} {openLogs === it.id ? "▲" : "▼"}
+                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setOpenLogs(openLogs === it.id ? null : it.id)} aria-expanded={openLogs === it.id}>
+                    日志 {itemLogs.length}
+                    <ChevronDown className={`size-3.5 transition ${openLogs === it.id ? "rotate-180" : ""}`} />
                   </button>
-                  <button className="btn-ghost ml-auto px-2 py-1 text-xs" onClick={() => { setError(""); setEditing({ id: it.id, draft: { ...it } }); }}>
-                    编辑
+                  <button className="btn-ghost ml-auto p-1.5" title="编辑" aria-label="编辑" onClick={() => { setError(""); setEditing({ id: it.id, draft: { ...it } }); }}>
+                    <Pencil className="size-3.5" />
                   </button>
-                  <button className="btn-danger px-2 py-1 text-xs" onClick={() => removeItem(it)}>
-                    删除
+                  <button className="btn-danger p-1.5" title="删除" aria-label="删除" onClick={() => removeItem(it)}>
+                    <Trash2 className="size-3.5" />
                   </button>
                 </div>
 
                 {openLogs === it.id && (
-                  <ul className="divide-y divide-white/60 rounded-lg bg-white/40 text-sm">
-                    {itemLogs.length === 0 && <li className="p-3 text-center text-xs text-slate-400">还没有学习记录</li>}
+                  <AnimatedUl className="divide-y divide-white/60 rounded-lg bg-white/40 text-sm">
+                    {itemLogs.length === 0 && <li key="empty" className="p-3 text-center text-xs text-slate-400">还没有学习记录</li>}
                     {itemLogs.map((l) => (
                       <li key={l.id} className="group flex items-start gap-3 px-3 py-2">
                         <span className="w-20 shrink-0 text-xs tabular-nums text-slate-500">{l.date}</span>
                         <span className="min-w-0 flex-1 whitespace-pre-wrap">{l.content || <span className="text-slate-400">（无备注）</span>}</span>
                         <span className="shrink-0 text-xs tabular-nums text-indigo-700">{fmtMinutes(l.minutes)}</span>
-                        <button className="btn-danger shrink-0 px-1.5 py-0 text-xs md:opacity-0 md:group-hover:opacity-100" onClick={() => removeLog(l)}>
-                          ✕
+                        <button className="btn-danger shrink-0 p-1 md:opacity-0 md:group-hover:opacity-100" title="删除日志" aria-label="删除日志" onClick={() => removeLog(l)}>
+                          <X className="size-3.5" />
                         </button>
                       </li>
                     ))}
-                  </ul>
+                  </AnimatedUl>
                 )}
               </article>
             );
           })}
-        </div>
+        </AnimatedDiv>
       )}
 
       {/* 新建 / 编辑学习项目 */}
@@ -286,7 +315,7 @@ export default function Learning() {
                   }}
                 >
                   {Object.entries(KINDS).map(([k, v]) => (
-                    <option key={k} value={k}>{v.icon} {v.label}</option>
+                    <option key={k} value={k}>{v.label}</option>
                   ))}
                 </select>
               </div>

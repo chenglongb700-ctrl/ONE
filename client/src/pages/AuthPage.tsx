@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ErrorText } from "../components/Modal";
+import { Sprout } from "lucide-react";
 
 export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   const { login, register } = useAuth();
@@ -32,7 +33,9 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
     <div className="grid min-h-screen place-items-center p-4">
       <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4 p-8">
         <div className="text-center">
-          <div className="text-4xl">🌱</div>
+          <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-lg shadow-emerald-900/20">
+            <Sprout className="size-6" strokeWidth={2.4} />
+          </span>
           <h1 className="mt-2 text-xl font-bold">{isLogin ? "欢迎回来" : "创建账号"}</h1>
           <p className="mt-1 text-sm text-slate-500">记录工作、生活与每一次感悟</p>
         </div>

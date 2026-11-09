@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Leaf, ListChecks, Pencil, Plus, Trash2, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { api, type Expense, type LifeItem, today } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
+import { confirmDialog } from "../components/Confirm";
+import { AnimatedUl } from "../components/Animated";
 
 const LIFE_CATS = ["购物", "健康", "家务", "社交", "学习", "其他"];
 const EXP_CATS = ["餐饮", "交通", "购物", "居住", "娱乐", "医疗", "工资", "其他"];
@@ -10,16 +14,18 @@ export default function Life() {
   return (
     <div>
       <PageHeader
-        title="🌿 生活"
+        title="生活"
+        icon={Leaf}
+        tone="bg-emerald-500"
         action={
           <div className="flex glass rounded-lg p-1 text-sm">
             {(["list", "money"] as const).map((k) => (
               <button
                 key={k}
-                className={`rounded-md px-3 py-1 transition ${tab === k ? "bg-white/80 shadow-sm" : "text-slate-600"}`}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1 transition ${tab === k ? "bg-white/80 shadow-sm" : "text-slate-600"}`}
                 onClick={() => setTab(k)}
               >
-                {k === "list" ? "📋 生活清单" : "💰 记账"}
+                {k === "list" ? <><ListChecks className="size-4" /> 生活清单</> : <><Wallet className="size-4" /> 记账</>}
               </button>
             ))}
           </div>
@@ -58,13 +64,31 @@ function LifeList() {
 
   const toggle = async (it: LifeItem) => {
     setItems((xs) => xs.map((x) => (x.id === it.id ? { ...x, done: !x.done } : x)));
-    await api.put(`/life/${it.id}`, { done: !it.done });
+    try {
+      await api.put(`/life/${it.id}`, { done: !it.done });
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
+  // 生活清单删除很轻量：不弹确认，改成提示里给一个"撤销"
   const remove = async (it: LifeItem) => {
-    await api.del(`/life/${it.id}`);
-    load();
+    try {
+      await api.del(`/life/${it.id}`);
+      load();
+      toast(`已删除「${it.title}」`, {
+        action: {
+          label: "撤销",
+          onClick: async () => {
+            await api.post("/life", { title: it.title, category: it.category, done: it.done, date: it.date });
+            load();
+          },
+        },
+      });
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   };
 
   const shown = filter === "全部" ? items : items.filter((i) => i.category === filter);
@@ -78,7 +102,7 @@ function LifeList() {
           {LIFE_CATS.map((c) => <option key={c}>{c}</option>)}
         </select>
         <input className="input w-40" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <button className="btn-primary">添加</button>
+        <button className="btn-primary"><Plus className="size-4" /> 添加</button>
         <div className="w-full"><ErrorText msg={error} /></div>
       </form>
 
@@ -94,8 +118,8 @@ function LifeList() {
         ))}
       </div>
 
-      <ul className="card divide-y divide-white/60 p-0">
-        {shown.length === 0 && <li className="p-6 text-center text-sm text-slate-400">清单是空的 🎉</li>}
+      <AnimatedUl className="card divide-y divide-white/60 p-0">
+        {shown.length === 0 && <li key="empty" className="p-6 text-center text-sm text-slate-400">清单是空的</li>}
         {shown.map((it) => (
           <li key={it.id} className="group flex items-center gap-3 px-4 py-3">
             <input type="checkbox" className="size-4 accent-emerald-600" checked={it.done} onChange={() => toggle(it)} />
@@ -106,12 +130,12 @@ function LifeList() {
                 {it.date === t0 ? "今天" : it.date}
               </span>
             )}
-            <button className="btn-danger px-2 py-1 text-xs md:opacity-0 md:group-hover:opacity-100" onClick={() => remove(it)}>
-              删除
+            <button className="btn-danger p-1.5 md:opacity-0 md:group-hover:opacity-100" title="删除" aria-label={`删除 ${it.title}`} onClick={() => remove(it)}>
+              <Trash2 className="size-3.5" />
             </button>
           </li>
         ))}
-      </ul>
+      </AnimatedUl>
     </div>
   );
 }
@@ -147,6 +171,7 @@ function Money() {
     try {
       if (editing.id) await api.put(`/expenses/${editing.id}`, editing.draft);
       else await api.post("/expenses", editing.draft);
+      toast.success(editing.id ? "记录已更新" : "已记一笔");
       setEditing(null);
       load();
     } catch (err) {
@@ -155,8 +180,14 @@ function Money() {
   };
 
   const remove = async (x: Expense) => {
-    if (!confirm("删除这条记录？")) return;
-    await api.del(`/expenses/${x.id}`);
+    const what = `${x.date} ${x.category} ${x.type === "income" ? "+" : "-"}${x.amount.toFixed(2)}`;
+    if (!(await confirmDialog({ title: "删除这条记录？", message: what }))) return;
+    try {
+      await api.del(`/expenses/${x.id}`);
+      toast.success("记录已删除");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
@@ -171,7 +202,7 @@ function Money() {
           className="btn-primary ml-auto"
           onClick={() => { setError(""); setEditing({ draft: { type: "expense", amount: 0, category: "餐饮", note: "", date: today() } }); }}
         >
-          + 记一笔
+          <Plus className="size-4" /> 记一笔
         </button>
       </div>
 
@@ -196,8 +227,8 @@ function Money() {
         </div>
       )}
 
-      <ul className="card divide-y divide-white/60 p-0">
-        {monthList.length === 0 && <li className="p-6 text-center text-sm text-slate-400">本月还没有记录</li>}
+      <AnimatedUl className="card divide-y divide-white/60 p-0">
+        {monthList.length === 0 && <li key="empty" className="p-6 text-center text-sm text-slate-400">本月还没有记录</li>}
         {monthList.map((x) => (
           <li key={x.id} className="group flex items-center gap-3 px-4 py-3 text-sm">
             <span className="w-24 shrink-0 text-xs text-slate-500">{x.date}</span>
@@ -207,12 +238,16 @@ function Money() {
               {x.type === "income" ? "+" : "-"}{x.amount.toFixed(2)}
             </span>
             <span className="flex gap-1 md:opacity-0 md:group-hover:opacity-100">
-              <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { setError(""); setEditing({ id: x.id, draft: { ...x } }); }}>编辑</button>
-              <button className="btn-danger px-2 py-1 text-xs" onClick={() => remove(x)}>删除</button>
+              <button className="btn-ghost p-1.5" title="编辑" aria-label="编辑" onClick={() => { setError(""); setEditing({ id: x.id, draft: { ...x } }); }}>
+                <Pencil className="size-3.5" />
+              </button>
+              <button className="btn-danger p-1.5" title="删除" aria-label="删除" onClick={() => remove(x)}>
+                <Trash2 className="size-3.5" />
+              </button>
             </span>
           </li>
         ))}
-      </ul>
+      </AnimatedUl>
 
       {editing && (
         <Modal title={editing.id ? "编辑记录" : "记一笔"} onClose={() => setEditing(null)}>

@@ -1,6 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { ArrowLeft, ArrowRight, Briefcase, CalendarDays, CircleCheckBig, CircleDashed, Pencil, Plus, Timer, Trash2, type LucideIcon } from "lucide-react";
+import { toast } from "sonner";
 import { api, type Priority, type Task, type TaskStatus, today } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
+import { confirmDialog } from "../components/Confirm";
+import { AnimatedDiv } from "../components/Animated";
 
 export const PRIORITY: Record<Priority, { label: string; cls: string }> = {
   high: { label: "高", cls: "bg-red-100 text-red-700" },
@@ -8,10 +12,10 @@ export const PRIORITY: Record<Priority, { label: string; cls: string }> = {
   low: { label: "低", cls: "bg-slate-100 text-slate-600" },
 };
 
-const COLUMNS: { key: TaskStatus; label: string; tone: string }[] = [
-  { key: "todo", label: "📝 待办", tone: "bg-white/30" },
-  { key: "doing", label: "🚧 进行中", tone: "bg-indigo-100/40" },
-  { key: "done", label: "✅ 已完成", tone: "bg-emerald-100/40" },
+const COLUMNS: { key: TaskStatus; label: string; icon: LucideIcon; iconCls: string; tone: string }[] = [
+  { key: "todo", label: "待办", icon: CircleDashed, iconCls: "text-slate-500", tone: "bg-white/30" },
+  { key: "doing", label: "进行中", icon: Timer, iconCls: "text-indigo-500", tone: "bg-indigo-100/40" },
+  { key: "done", label: "已完成", icon: CircleCheckBig, iconCls: "text-emerald-500", tone: "bg-emerald-100/40" },
 ];
 
 type Draft = Omit<Task, "id" | "updated_at">;
@@ -34,6 +38,7 @@ export default function Work() {
     try {
       if (editing.id) await api.put(`/tasks/${editing.id}`, editing.draft);
       else await api.post("/tasks", editing.draft);
+      toast.success(editing.id ? "任务已更新" : "任务已创建");
       setEditing(null);
       load();
     } catch (err) {
@@ -42,13 +47,25 @@ export default function Work() {
   };
 
   const move = async (t: Task, status: TaskStatus) => {
-    await api.put(`/tasks/${t.id}`, { status });
+    // 先在界面上移动，看起来更跟手；失败再刷新
+    setTasks((ts) => ts.map((x) => (x.id === t.id ? { ...x, status } : x)));
+    try {
+      await api.put(`/tasks/${t.id}`, { status });
+      if (status === "done") toast.success(`完成「${t.title}」`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
   const remove = async (t: Task) => {
-    if (!confirm(`删除任务「${t.title}」？`)) return;
-    await api.del(`/tasks/${t.id}`);
+    if (!(await confirmDialog({ title: "删除任务？", message: `「${t.title}」删除后无法恢复。` }))) return;
+    try {
+      await api.del(`/tasks/${t.id}`);
+      toast.success("任务已删除");
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
@@ -60,11 +77,13 @@ export default function Work() {
   return (
     <div>
       <PageHeader
-        title="💼 工作"
+        title="工作"
+        icon={Briefcase}
+        tone="bg-indigo-500"
         sub="按优先级和截止日期排序"
         action={
           <button className="btn-primary" onClick={() => { setError(""); setEditing({ draft: { ...empty } }); }}>
-            + 新建任务
+            <Plus className="size-4" /> 新建任务
           </button>
         }
       />
@@ -74,48 +93,49 @@ export default function Work() {
           const list = tasks.filter((t) => t.status === col.key);
           return (
             <section key={col.key} className={`rounded-2xl border border-white/50 p-3 backdrop-blur-md ${col.tone}`}>
-              <h2 className="mb-3 flex items-center justify-between px-1 text-sm font-semibold">
+              <h2 className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
+                <col.icon className={`size-4 ${col.iconCls}`} />
                 {col.label}
-                <span className="rounded-full bg-white/70 px-2 text-xs text-slate-500">{list.length}</span>
+                <span className="ml-auto rounded-full bg-white/70 px-2 text-xs text-slate-500">{list.length}</span>
               </h2>
-              <div className="space-y-2">
+              <AnimatedDiv className="space-y-2">
                 {list.map((t) => {
                   const overdue = t.status !== "done" && t.due_date && t.due_date < t0;
                   return (
-                    <article key={t.id} className="card group p-3">
+                    <article key={t.id} className="card group p-3 transition hover:-translate-y-0.5 hover:shadow-xl">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className={`text-sm font-medium ${t.status === "done" ? "text-slate-400 line-through" : ""}`}>{t.title}</h3>
                         <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${PRIORITY[t.priority].cls}`}>{PRIORITY[t.priority].label}</span>
                       </div>
                       {t.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{t.description}</p>}
                       {t.due_date && (
-                        <p className={`mt-2 text-xs ${overdue ? "font-medium text-red-600" : "text-slate-500"}`}>
-                          📅 {t.due_date} {overdue && "已逾期"}
+                        <p className={`mt-2 flex items-center gap-1 text-xs ${overdue ? "font-medium text-red-600" : "text-slate-500"}`}>
+                          <CalendarDays className="size-3.5" /> {t.due_date} {overdue && "已逾期"}
                         </p>
                       )}
-                      <div className="mt-2 flex flex-wrap gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+                      <div className="mt-2 flex flex-wrap items-center gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
                         {ci > 0 && (
                           <button className="btn-ghost px-2 py-1 text-xs" onClick={() => move(t, COLUMNS[ci - 1].key)}>
-                            ← {COLUMNS[ci - 1].label.slice(2)}
+                            <ArrowLeft className="size-3.5" /> {COLUMNS[ci - 1].label}
                           </button>
                         )}
                         {ci < 2 && (
                           <button className="btn-ghost px-2 py-1 text-xs" onClick={() => move(t, COLUMNS[ci + 1].key)}>
-                            {COLUMNS[ci + 1].label.slice(2)} →
+                            {COLUMNS[ci + 1].label} <ArrowRight className="size-3.5" />
                           </button>
                         )}
-                        <button className="btn-ghost ml-auto px-2 py-1 text-xs" onClick={() => { setError(""); setEditing({ id: t.id, draft: { ...t } }); }}>
-                          编辑
+                        <button className="btn-ghost ml-auto p-1.5" title="编辑" aria-label="编辑" onClick={() => { setError(""); setEditing({ id: t.id, draft: { ...t } }); }}>
+                          <Pencil className="size-3.5" />
                         </button>
-                        <button className="btn-danger px-2 py-1 text-xs" onClick={() => remove(t)}>
-                          删除
+                        <button className="btn-danger p-1.5" title="删除" aria-label="删除" onClick={() => remove(t)}>
+                          <Trash2 className="size-3.5" />
                         </button>
                       </div>
                     </article>
                   );
                 })}
-                {list.length === 0 && <p className="py-6 text-center text-xs text-slate-400">空</p>}
-              </div>
+                {list.length === 0 && <p key="empty" className="py-6 text-center text-xs text-slate-400">空</p>}
+              </AnimatedDiv>
             </section>
           );
         })}
@@ -137,7 +157,7 @@ export default function Work() {
                 <label className="label">状态</label>
                 <select className="input" value={editing.draft.status} onChange={(e) => set("status", e.target.value as TaskStatus)}>
                   {COLUMNS.map((c) => (
-                    <option key={c.key} value={c.key}>{c.label.slice(2)}</option>
+                    <option key={c.key} value={c.key}>{c.label}</option>
                   ))}
                 </select>
               </div>

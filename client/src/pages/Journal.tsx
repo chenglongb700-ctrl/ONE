@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { CalendarDays, PenLine, Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { api, type Journal, today } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
+import { confirmDialog } from "../components/Confirm";
+import { AnimatedDiv } from "../components/Animated";
 
 const MOODS = ["😊", "😄", "🥰", "😌", "😐", "🤔", "😔", "😢", "😤", "😴"];
 
@@ -40,6 +44,7 @@ export default function JournalPage() {
     try {
       if (editing.id) await api.put(`/journals/${editing.id}`, draft);
       else await api.post("/journals", draft);
+      toast.success(editing.id ? "已保存修改" : "已记下这篇感悟");
       setEditing(null);
       load();
     } catch (err) {
@@ -48,9 +53,14 @@ export default function JournalPage() {
   };
 
   const remove = async (j: Journal) => {
-    if (!confirm(`删除「${j.title}」？`)) return;
-    await api.del(`/journals/${j.id}`);
-    setViewing(null);
+    if (!(await confirmDialog({ title: "删除这篇感悟？", message: `「${j.title}」删除后无法恢复。` }))) return;
+    try {
+      await api.del(`/journals/${j.id}`);
+      toast.success("已删除");
+      setViewing(null);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
     load();
   };
 
@@ -65,10 +75,19 @@ export default function JournalPage() {
 
   return (
     <div>
-      <PageHeader title="✍️ 感悟" sub="记录想法、心情与成长" action={<button className="btn-primary" onClick={() => openEdit()}>+ 写一篇</button>} />
+      <PageHeader
+        title="感悟"
+        icon={PenLine}
+        tone="bg-amber-500"
+        sub="记录想法、心情与成长"
+        action={<button className="btn-primary" onClick={() => openEdit()}><Plus className="size-4" /> 写一篇</button>}
+      />
 
       <div className="mb-4 space-y-3">
-        <input className="input max-w-sm" placeholder="🔍 搜索标题或内容…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <input className="input pl-9" placeholder="搜索标题或内容…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
         {allTags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {allTags.map((t) => (
@@ -85,13 +104,13 @@ export default function JournalPage() {
       </div>
 
       {shown.length === 0 ? (
-        <div className="card py-12 text-center text-sm text-slate-400">{list.length ? "没有匹配的记录" : "还没有感悟，写下今天的想法吧 ✨"}</div>
+        <div className="card py-12 text-center text-sm text-slate-400">{list.length ? "没有匹配的记录" : "还没有感悟，写下今天的想法吧"}</div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <AnimatedDiv className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((j) => (
-            <article key={j.id} className="card cursor-pointer border-t-4 border-t-amber-300 transition hover:-translate-y-0.5 hover:shadow-md" onClick={() => setViewing(j)}>
+            <article key={j.id} className="card cursor-pointer border-t-4 border-t-amber-300 transition hover:-translate-y-0.5 hover:shadow-xl" onClick={() => setViewing(j)}>
               <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>{j.date}</span>
+                <span className="flex items-center gap-1"><CalendarDays className="size-3.5" />{j.date}</span>
                 <span className="text-xl">{j.mood}</span>
               </div>
               <h3 className="mt-2 font-semibold">{j.title}</h3>
@@ -105,7 +124,7 @@ export default function JournalPage() {
               )}
             </article>
           ))}
-        </div>
+        </AnimatedDiv>
       )}
 
       {viewing && (
@@ -113,8 +132,8 @@ export default function JournalPage() {
           <p className="mb-3 text-xs text-slate-500">{viewing.date}</p>
           <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">{viewing.content || <span className="text-slate-400">（无内容）</span>}</div>
           <div className="mt-4 flex justify-end gap-2">
-            <button className="btn-danger" onClick={() => remove(viewing)}>删除</button>
-            <button className="btn-primary" onClick={() => openEdit(viewing)}>编辑</button>
+            <button className="btn-danger" onClick={() => remove(viewing)}><Trash2 className="size-4" /> 删除</button>
+            <button className="btn-primary" onClick={() => openEdit(viewing)}><PenLine className="size-4" /> 编辑</button>
           </div>
         </Modal>
       )}

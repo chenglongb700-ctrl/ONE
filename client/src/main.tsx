@@ -11,6 +11,8 @@ import Life from "./pages/Life";
 import JournalPage from "./pages/Journal";
 import Learning from "./pages/Learning";
 import Habits from "./pages/Habits";
+import { Toaster } from "sonner";
+import { ConfirmHost } from "./components/Confirm";
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -33,6 +35,14 @@ createRoot(document.getElementById("root")!).render(
       <span className="right-[-6rem] top-[20%] size-[24rem] bg-pink-300 [animation-delay:-6s]" />
       <span className="bottom-[-8rem] left-[30%] size-[30rem] bg-emerald-200 [animation-delay:-12s]" />
     </div>
+    <Toaster
+      position="top-center"
+      richColors
+      closeButton
+      duration={2500}
+      toastOptions={{ className: "!rounded-xl !border-white/60 !shadow-lg !backdrop-blur-xl" }}
+    />
+    <ConfirmHost />
     <AuthProvider>
       <BrowserRouter>
         <Routes>

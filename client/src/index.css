@@ -37,7 +37,7 @@
   @apply w-full rounded-lg border border-white/70 bg-white/55 px-3 py-2 text-sm outline-none backdrop-blur-md transition placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white/80 focus:ring-2 focus:ring-indigo-200/60;
 }
 @utility btn {
-  @apply inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50;
+  @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition active:scale-[.97] disabled:opacity-50;
 }
 @utility btn-primary {
   @apply btn bg-slate-900/80 text-white shadow-md shadow-slate-900/10 backdrop-blur-md hover:bg-slate-900/90;
@@ -53,4 +53,18 @@
 }
 @utility label {
   @apply mb-1 block text-xs font-medium text-slate-500;
+}
+
+/* 弹窗出现：背景淡入，面板轻轻上浮放大 */
+.modal-backdrop { animation: fade-in .18s ease-out; }
+.modal-panel { animation: pop-in .22s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+
+/* 页面切换时内容淡入 */
+.page-enter { animation: page-in .25s ease-out; }
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
