@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BookOpen, Briefcase, CircleCheckBig, CircleUser, LayoutDashboard, Leaf, LogOut, PenLine, Sprout, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import PlayerBar from "../music/PlayerBar";
 
 // 每个模块一个固定颜色，页面标题和首页卡片用同一套
 export const MODULES: Record<string, { label: string; icon: LucideIcon; tone: string; text: string }> = {
@@ -64,9 +65,10 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      <main key={location.pathname} className="page-enter mx-auto w-full min-w-0 max-w-6xl flex-1 p-4 md:p-8">
+      <main key={location.pathname} className="page-enter mx-auto w-full min-w-0 max-w-6xl flex-1 p-4 pb-24 md:p-8 md:pb-28">
         <Outlet />
       </main>
+      <PlayerBar />
     </div>
   );
 }

@@ -124,3 +124,21 @@ function ensureColumn(table: string, column: string, definition: string) {
 }
 
 ensureColumn("habits", "color", "TEXT NOT NULL DEFAULT 'emerald'");
+
+// 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）
+db.exec(`
+CREATE TABLE IF NOT EXISTS tracks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL CHECK (source IN ('file','url')),
+  file_name TEXT,            -- 服务器上的随机文件名（不使用用户给的文件名，防止路径注入）
+  mime TEXT,
+  size INTEGER,
+  url TEXT,
+  lyrics TEXT NOT NULL DEFAULT '',   -- LRC 格式歌词
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_tracks_user ON tracks(user_id);
+`);

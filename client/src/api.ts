@@ -109,3 +109,24 @@ export function fmtMinutes(min: number) {
   const m = min % 60;
   return m ? `${h} 小时 ${m} 分` : `${h} 小时`;
 }
+
+// ---------- 音乐 ----------
+export type Track = {
+  id: number;
+  title: string;
+  artist: string;
+  source: "file" | "url";
+  size: number | null;
+  /** 播放地址：上传的文件是 /api/music/:id/file，链接就是原网址 */
+  src: string;
+  lyrics: string;
+  created_at: string;
+};
+
+/** 上传文件用 multipart/form-data，不能走上面的 JSON 封装 */
+export async function uploadFile<T>(url: string, form: FormData): Promise<T> {
+  const res = await fetch("/api" + url, { method: "POST", credentials: "include", body: form });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, data.error ?? `上传失败 (${res.status})`);
+  return data as T;
+}

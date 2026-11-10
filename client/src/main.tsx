@@ -13,12 +13,18 @@ import Learning from "./pages/Learning";
 import Habits from "./pages/Habits";
 import { Toaster } from "sonner";
 import { ConfirmHost } from "./components/Confirm";
+import { MusicProvider } from "./music/MusicContext";
 
 function Protected() {
   const { user, loading } = useAuth();
   if (loading) return <div className="grid h-screen place-items-center text-slate-400">加载中…</div>;
   if (!user) return <Navigate to="/login" replace />;
-  return <Layout />;
+  // 音乐播放器的状态放在页面之上：切换页面时音乐不会断
+  return (
+    <MusicProvider>
+      <Layout />
+    </MusicProvider>
+  );
 }
 
 function GuestOnly({ mode }: { mode: "login" | "register" }) {
