@@ -77,8 +77,6 @@ export default function JournalPage() {
     <div>
       <PageHeader
         title="感悟"
-        icon={PenLine}
-        tone="bg-amber-500"
         sub="记录想法、心情与成长"
         action={<button className="btn-primary" onClick={() => openEdit()}><Plus className="size-4" /> 写一篇</button>}
       />
@@ -94,7 +92,7 @@ export default function JournalPage() {
               <button
                 key={t}
                 onClick={() => setTag(tag === t ? null : t)}
-                className={`rounded-full px-3 py-1 text-xs transition ${tag === t ? "bg-amber-500 text-white" : "bg-white/50 text-slate-600 ring-1 ring-white/70 backdrop-blur-md hover:bg-white/70"}`}
+                className={tag === t ? "chip-on" : "chip"}
               >
                 #{t}
               </button>
@@ -108,17 +106,17 @@ export default function JournalPage() {
       ) : (
         <AnimatedDiv className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((j) => (
-            <article key={j.id} className="card cursor-pointer border-t-4 border-t-amber-300 transition hover:-translate-y-0.5 hover:shadow-xl" onClick={() => setViewing(j)}>
+            <article key={j.id} className="card card-link cursor-pointer" onClick={() => setViewing(j)}>
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span className="flex items-center gap-1"><CalendarDays className="size-3.5" />{j.date}</span>
                 <span className="text-xl">{j.mood}</span>
               </div>
-              <h3 className="mt-2 font-semibold">{j.title}</h3>
+              <h3 className="mt-2 font-medium">{j.title}</h3>
               <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-sm text-slate-600">{j.content}</p>
               {j.tags && (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {splitTags(j.tags).map((t) => (
-                    <span key={t} className="rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">#{t}</span>
+                    <span key={t} className="tag">#{t}</span>
                   ))}
                 </div>
               )}
@@ -159,7 +157,7 @@ export default function JournalPage() {
                     type="button"
                     key={m}
                     onClick={() => set("mood", m)}
-                    className={`rounded-lg p-1.5 text-xl transition ${editing.draft.mood === m ? "bg-amber-100 ring-2 ring-amber-400" : "hover:bg-white/60"}`}
+                    className={`rounded-lg p-1.5 text-xl transition ${editing.draft.mood === m ? "bg-brand/10 ring-2 ring-brand" : "hover:bg-ink/6"}`}
                   >
                     {m}
                   </button>

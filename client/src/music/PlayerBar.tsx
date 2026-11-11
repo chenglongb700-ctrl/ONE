@@ -143,7 +143,7 @@ export default function PlayerBar() {
     return (
       <div data-music-player className="glass fixed bottom-3 right-3 z-40 flex items-center gap-1 rounded-full p-1.5">
         <button
-          className="grid size-9 place-items-center rounded-full bg-slate-900/85 text-white transition active:scale-90 disabled:opacity-40"
+          className="grid size-9 place-items-center rounded-full bg-ink text-paper transition active:scale-90 disabled:opacity-40"
           onClick={m.toggle}
           disabled={!hasTracks}
           aria-label={m.playing ? "暂停" : "播放"}
@@ -171,13 +171,13 @@ export default function PlayerBar() {
       <div data-music-player className="fixed inset-x-0 bottom-0 z-40 md:bottom-3 md:left-[15.5rem] md:right-3">
         {panel && (
           <div className="absolute bottom-full right-0 w-full px-2 pb-2 md:w-[26rem] md:px-0">
-            <section className="modal-panel glass flex max-h-[min(60vh,30rem)] flex-col overflow-hidden rounded-2xl bg-white/75">
-              <header className="flex items-center gap-1 border-b border-white/60 p-2">
+            <section className="modal-panel glass flex max-h-[min(60vh,30rem)] flex-col overflow-hidden rounded-[22px] bg-surface">
+              <header className="flex items-center gap-1 border-b border-line p-2">
                 {(["list", "lyrics"] as const).map((k) => (
                   <button
                     key={k}
                     onClick={() => setPanel(k)}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition ${panel === k ? "bg-white/90 font-medium shadow-sm" : "text-slate-600 hover:bg-white/50"}`}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition ${panel === k ? "bg-ink/8 font-medium" : "text-slate-600 hover:bg-ink/5"}`}
                   >
                     {k === "list" ? <><ListMusic className="size-4" /> 歌单 {m.tracks.length}</> : <><ScrollText className="size-4" /> 歌词</>}
                   </button>
@@ -193,7 +193,7 @@ export default function PlayerBar() {
                     <button className="btn-primary flex-1 py-1.5" onClick={() => fileInput.current?.click()}>
                       <Upload className="size-4" /> 上传文件
                     </button>
-                    <button className="btn flex-1 bg-white/70 py-1.5 text-slate-700 hover:bg-white" onClick={() => setLinking(true)}>
+                    <button className="btn flex-1 bg-ink/6 py-1.5 text-slate-700 hover:bg-ink/10" onClick={() => setLinking(true)}>
                       <Link2 className="size-4" /> 添加链接
                     </button>
                   </div>
@@ -208,17 +208,17 @@ export default function PlayerBar() {
                     {m.tracks.map((t, i) => {
                       const active = t.id === m.current?.id;
                       return (
-                        <li key={t.id} className={`group flex items-center gap-1 rounded-lg pr-1 transition ${active ? "bg-white/80" : "hover:bg-white/50"}`}>
+                        <li key={t.id} className={`group flex items-center gap-1 rounded-lg pr-1 transition ${active ? "bg-ink/6" : "hover:bg-ink/[0.04]"}`}>
                           <button className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2 text-left" onClick={() => (active ? m.toggle() : m.play(t))}>
                             <span className="grid w-5 shrink-0 place-items-center text-xs tabular-nums text-slate-400">
-                              {active ? m.playing ? <Volume2 className="size-4 text-indigo-600" /> : <Pause className="size-4 text-indigo-600" /> : i + 1}
+                              {active ? m.playing ? <Volume2 className="size-4 text-brand" /> : <Pause className="size-4 text-brand" /> : i + 1}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className={`block truncate text-sm ${active ? "font-medium text-indigo-700" : ""}`}>{t.title}</span>
+                              <span className={`block truncate text-sm ${active ? "font-medium text-brand" : ""}`}>{t.title}</span>
                               <span className="flex items-center gap-1 truncate text-xs text-slate-500">
                                 {t.source === "url" && <Link2 className="size-3 shrink-0" />}
                                 {t.artist || (t.source === "url" ? "外部链接" : "未知歌手")}
-                                {t.lyrics && <span className="ml-1 rounded bg-indigo-100 px-1 text-[10px] text-indigo-600">词</span>}
+                                {t.lyrics && <span className="ml-1 rounded bg-brand/12 px-1 text-[10px] text-brand">词</span>}
                               </span>
                             </span>
                           </button>
@@ -232,8 +232,8 @@ export default function PlayerBar() {
                       );
                     })}
                   </ul>
-                  <label className="flex items-center gap-2 border-t border-white/60 px-3 py-2 text-xs text-slate-600">
-                    <input type="checkbox" className="size-3.5 accent-indigo-600" checked={m.autoplay} onChange={(e) => m.setAutoplay(e.target.checked)} />
+                  <label className="flex items-center gap-2 border-t border-line px-3 py-2 text-xs text-slate-600">
+                    <input type="checkbox" className="size-3.5 accent-brand" checked={m.autoplay} onChange={(e) => m.setAutoplay(e.target.checked)} />
                     打开网站后，第一次点击页面时自动开始播放
                   </label>
                 </>
@@ -255,7 +255,7 @@ export default function PlayerBar() {
           </div>
         )}
 
-        <div className="glass relative flex items-center gap-2 border-x-0 border-b-0 px-3 py-2 md:gap-3 md:rounded-2xl md:border md:px-4">
+        <div className="glass relative flex items-center gap-2 border-x-0 border-b-0 px-3 py-2 md:gap-3 md:rounded-[22px] md:border md:px-4">
           {/* 较窄时：顶边一条细进度线，点击或按左右方向键跳转；够宽（xl）时用下面可拖动的进度条 */}
           <div
             className="absolute inset-x-0 -top-1.5 h-4 cursor-pointer md:inset-x-4 xl:hidden"
@@ -276,13 +276,13 @@ export default function PlayerBar() {
               if (e.key === "ArrowLeft") m.seek(m.time - 5);
             }}
           >
-            <div className="absolute inset-x-0 top-1.5 h-[3px] overflow-hidden rounded-full bg-white/60">
-              <div className="h-full rounded-full bg-indigo-500 transition-[width] duration-300" style={{ width: `${pct}%` }} />
+            <div className="absolute inset-x-0 top-1.5 h-[3px] overflow-hidden rounded-full bg-ink/10">
+              <div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${pct}%` }} />
             </div>
           </div>
 
           <button
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-md"
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-paper"
             onClick={() => setPanel(panel === "lyrics" ? null : "lyrics")}
             title="歌词"
             aria-label="打开歌词"
@@ -292,7 +292,7 @@ export default function PlayerBar() {
 
           <div className="min-w-0 flex-1 xl:w-52 xl:flex-none">
             <div className="truncate text-sm font-medium">{m.current?.title ?? "还没有音乐"}</div>
-            <div className={`truncate text-xs ${lineIdx >= 0 && m.current ? "text-indigo-600" : "text-slate-500"}`}>{sub}</div>
+            <div className={`truncate text-xs ${lineIdx >= 0 && m.current ? "text-brand" : "text-slate-500"}`}>{sub}</div>
           </div>
 
           <Spectrum analyser={m.analyser} playing={m.playing} bars={16} className="hidden h-8 w-16 shrink-0 sm:block" />
@@ -302,7 +302,7 @@ export default function PlayerBar() {
               <SkipBack className="size-4" />
             </button>
             <button
-              className="grid size-10 place-items-center rounded-full bg-slate-900/85 text-white shadow-md transition hover:bg-slate-900 active:scale-90 disabled:opacity-40"
+              className="grid size-10 place-items-center rounded-full bg-ink text-paper transition hover:bg-ink/85 active:scale-90 disabled:opacity-40"
               onClick={m.toggle}
               disabled={!hasTracks}
               aria-label={m.playing ? "暂停" : "播放"}
@@ -324,7 +324,7 @@ export default function PlayerBar() {
             <span className="w-9 text-right">{fmtTime(m.time)}</span>
             <input
               type="range"
-              className="h-1 min-w-0 flex-1 cursor-pointer accent-indigo-500"
+              className="h-1 min-w-0 flex-1 cursor-pointer accent-brand"
               min={0}
               max={m.duration || 0}
               step={0.1}
@@ -346,7 +346,7 @@ export default function PlayerBar() {
               </button>
               <input
                 type="range"
-                className="hidden h-1 w-20 cursor-pointer accent-slate-700 xl:block"
+                className="hidden h-1 w-20 cursor-pointer accent-brand xl:block"
                 min={0}
                 max={1}
                 step={0.01}
@@ -356,7 +356,7 @@ export default function PlayerBar() {
               />
             </div>
             <button
-              className={`btn-ghost p-2 ${panel === "list" ? "bg-white/70" : ""}`}
+              className={`btn-ghost p-2 ${panel === "list" ? "bg-ink/8" : ""}`}
               onClick={() => setPanel(panel === "list" ? null : "list")}
               aria-label="歌单"
               title="歌单"
@@ -456,8 +456,8 @@ function LyricsView({
             ref={i === active ? activeRef : undefined}
             onClick={() => onSeek(l.time)}
             title={`跳到 ${fmtTime(l.time)}`}
-            className={`block w-full rounded px-2 py-1 transition-all duration-300 hover:bg-white/50 ${
-              i === active ? "text-base font-semibold text-indigo-700" : "text-sm text-slate-500"
+            className={`block w-full rounded px-2 py-1 transition-all duration-300 hover:bg-ink/5 ${
+              i === active ? "text-base font-semibold text-brand" : "text-sm text-slate-500"
             }`}
           >
             {l.text || "·"}

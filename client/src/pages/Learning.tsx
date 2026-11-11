@@ -16,16 +16,16 @@ import { confirmDialog } from "../components/Confirm";
 import { AnimatedDiv, AnimatedUl } from "../components/Animated";
 
 const KINDS: Record<LearningKind, { label: string; icon: LucideIcon; cls: string; unit: string }> = {
-  book: { label: "书", icon: BookOpen, cls: "bg-violet-100 text-violet-600", unit: "章" },
-  course: { label: "课程", icon: GraduationCap, cls: "bg-sky-100 text-sky-600", unit: "集" },
-  skill: { label: "技能", icon: Wrench, cls: "bg-amber-100 text-amber-600", unit: "%" },
-  other: { label: "其他", icon: Pin, cls: "bg-slate-200/70 text-slate-600", unit: "项" },
+  book: { label: "书", icon: BookOpen, cls: "bg-ink/6 text-slate-600", unit: "章" },
+  course: { label: "课程", icon: GraduationCap, cls: "bg-ink/6 text-slate-600", unit: "集" },
+  skill: { label: "技能", icon: Wrench, cls: "bg-ink/6 text-slate-600", unit: "%" },
+  other: { label: "其他", icon: Pin, cls: "bg-ink/6 text-slate-600", unit: "项" },
 };
 
 const STATUSES: Record<LearningStatus, { label: string; cls: string }> = {
-  active: { label: "进行中", cls: "bg-indigo-100 text-indigo-700" },
-  planned: { label: "计划中", cls: "bg-sky-100 text-sky-700" },
-  paused: { label: "暂停", cls: "bg-slate-200/70 text-slate-600" },
+  active: { label: "进行中", cls: "bg-brand/12 text-brand" },
+  planned: { label: "计划中", cls: "bg-ink/6 text-slate-600" },
+  paused: { label: "暂停", cls: "bg-ink/6 text-slate-400" },
   done: { label: "已完成", cls: "bg-emerald-100 text-emerald-700" },
 };
 const FILTERS: (LearningStatus | "all")[] = ["active", "planned", "paused", "done", "all"];
@@ -151,8 +151,6 @@ export default function Learning() {
     <div>
       <PageHeader
         title="学习"
-        icon={BookOpen}
-        tone="bg-violet-500"
         sub="书、课程、技能，记录每一次投入"
         action={
           <button className="btn-primary" onClick={() => { setError(""); setEditing({ draft: { ...emptyItem } }); }}>
@@ -166,20 +164,20 @@ export default function Learning() {
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold">最近 7 天</h2>
           <span className="text-sm text-slate-500">
-            共 <b className="text-slate-800">{fmtMinutes(weekTotal)}</b>
+            共 <b className="font-medium text-ink">{fmtMinutes(weekTotal)}</b>
           </span>
         </div>
         <div className="flex items-end gap-2">
           {week.map((d) => (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${d.date}：${fmtMinutes(d.minutes)}`}>
               <span className="h-4 text-[10px] tabular-nums text-slate-500">{d.minutes || ""}</span>
-              <div className="flex h-20 w-full max-w-10 items-end rounded-md bg-white/50">
+              <div className="flex h-20 w-full max-w-10 items-end rounded-md bg-ink/5">
                 <div
-                  className={`w-full rounded-md ${d.date === t0 ? "bg-indigo-500" : "bg-indigo-300"}`}
+                  className={`w-full rounded-md ${d.date === t0 ? "bg-brand" : "bg-brand/35"}`}
                   style={{ height: `${(d.minutes / weekMax) * 100}%`, minHeight: d.minutes ? 4 : 0 }}
                 />
               </div>
-              <span className={`text-xs ${d.date === t0 ? "font-semibold text-indigo-700" : "text-slate-500"}`}>
+              <span className={`text-xs ${d.date === t0 ? "font-semibold text-brand" : "text-slate-500"}`}>
                 {d.date === t0 ? "今天" : "一二三四五六日"[(new Date(d.date + "T12:00").getDay() + 6) % 7]}
               </span>
             </div>
@@ -193,7 +191,7 @@ export default function Learning() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-full px-3 py-1 text-xs transition ${filter === f ? "bg-indigo-600 text-white" : "bg-white/50 text-slate-600 ring-1 ring-white/70 backdrop-blur-md hover:bg-white/70"}`}
+            className={filter === f ? "chip-on" : "chip"}
           >
             {f === "all" ? "全部" : STATUSES[f].label} {counts[f] ?? 0}
           </button>
@@ -224,7 +222,7 @@ export default function Learning() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold">{it.title}</h3>
-                      <span className={`rounded px-1.5 py-0.5 text-xs ${STATUSES[it.status].cls}`}>{STATUSES[it.status].label}</span>
+                      <span className={`rounded-md px-1.5 py-0.5 text-xs ${STATUSES[it.status].cls}`}>{STATUSES[it.status].label}</span>
                     </div>
                     {it.goal && <p className="mt-1 text-sm text-slate-500">{it.goal}</p>}
                   </div>
@@ -238,8 +236,8 @@ export default function Learning() {
                       </span>
                       <span className="tabular-nums">{pct.toFixed(0)}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-white/60">
-                      <div className={`h-2 rounded-full ${it.status === "done" ? "bg-emerald-500" : "bg-indigo-500"}`} style={{ width: `${pct}%` }} />
+                    <div className="h-1.5 rounded-full bg-ink/8">
+                      <div className={`h-1.5 rounded-full ${it.status === "done" ? "bg-emerald-500" : "bg-brand"}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 )}
@@ -275,13 +273,13 @@ export default function Learning() {
                 </div>
 
                 {openLogs === it.id && (
-                  <AnimatedUl className="divide-y divide-white/60 rounded-lg bg-white/40 text-sm">
+                  <AnimatedUl className="divide-y divide-line rounded-xl bg-ink/[0.04] text-sm">
                     {itemLogs.length === 0 && <li key="empty" className="p-3 text-center text-xs text-slate-400">还没有学习记录</li>}
                     {itemLogs.map((l) => (
                       <li key={l.id} className="group flex items-start gap-3 px-3 py-2">
                         <span className="w-20 shrink-0 text-xs tabular-nums text-slate-500">{l.date}</span>
                         <span className="min-w-0 flex-1 whitespace-pre-wrap">{l.content || <span className="text-slate-400">（无备注）</span>}</span>
-                        <span className="shrink-0 text-xs tabular-nums text-indigo-700">{fmtMinutes(l.minutes)}</span>
+                        <span className="shrink-0 text-xs tabular-nums text-brand">{fmtMinutes(l.minutes)}</span>
                         <button className="btn-danger shrink-0 p-1 md:opacity-0 md:group-hover:opacity-100" title="删除日志" aria-label="删除日志" onClick={() => removeLog(l)}>
                           <X className="size-3.5" />
                         </button>
@@ -379,7 +377,7 @@ export default function Learning() {
                   type="button"
                   key={m}
                   onClick={() => setLogging({ ...logging, minutes: m })}
-                  className={`rounded-md px-2.5 py-1 text-xs transition ${logging.minutes === m ? "bg-indigo-600 text-white" : "bg-white/60 text-slate-600 hover:bg-white/80"}`}
+                  className={`rounded-md px-2.5 py-1 text-xs transition ${logging.minutes === m ? "bg-ink text-paper" : "bg-ink/6 text-slate-600 hover:bg-ink/10"}`}
                 >
                   {m < 60 ? `${m} 分` : `${m / 60} 小时`}
                 </button>
@@ -406,7 +404,7 @@ export default function Learning() {
               </div>
             )}
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-emerald-600" checked={logging.markDone} onChange={(e) => setLogging({ ...logging, markDone: e.target.checked })} />
+              <input type="checkbox" className="size-4 accent-brand" checked={logging.markDone} onChange={(e) => setLogging({ ...logging, markDone: e.target.checked })} />
               这次学完了，标记为已完成
             </label>
             <ErrorText msg={error} />

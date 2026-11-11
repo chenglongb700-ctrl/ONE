@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTheme } from "../theme";
 
 /**
  * 频谱：用 Web Audio 的 AnalyserNode 读取每个频段的能量，画成柱子。
@@ -16,6 +17,7 @@ export default function Spectrum({
   className?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme(); // 换主题时重新取一次颜色
 
   useEffect(() => {
     const cv = canvas.current;
@@ -23,6 +25,8 @@ export default function Spectrum({
     const g = cv.getContext("2d");
     if (!g) return;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // 柱子用全站唯一的强调色，底部实、顶部淡
+    const brand = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#2452d6";
 
     // 跟随元素大小和屏幕像素密度调整画布
     const resize = () => {
@@ -65,14 +69,14 @@ export default function Spectrum({
       const gap = Math.max(1, W / bars / 4);
       const bw = W / bars - gap;
       const grad = g.createLinearGradient(0, H, 0, 0);
-      grad.addColorStop(0, "#818cf8");
-      grad.addColorStop(0.6, "#c084fc");
-      grad.addColorStop(1, "#f472b6");
+      grad.addColorStop(0, brand);
+      grad.addColorStop(1, brand + "73");
       g.fillStyle = grad;
       for (let i = 0; i < bars; i++) {
         const h = Math.max(H * 0.06, levels[i] * H);
         const x = i * (bw + gap) + gap / 2;
-        const r = Math.min(bw / 2, 3 * (window.devicePixelRatio || 1));
+        const r = Math.max(0, Math.min(bw / 2, 3 * (window.devicePixelRatio || 1))); // 画布还没排好版时宽度可能是 0
+        if (bw <= 0) break;
         g.beginPath();
         g.roundRect(x, H - h, bw, h, [r, r, 0, 0]);
         g.fill();
@@ -88,7 +92,7 @@ export default function Spectrum({
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [analyser, playing, bars]);
+  }, [analyser, playing, bars, theme]);
 
   return <canvas ref={canvas} className={className} aria-hidden />;
 }

@@ -9,13 +9,13 @@ import { AnimatedDiv } from "../components/Animated";
 export const PRIORITY: Record<Priority, { label: string; cls: string }> = {
   high: { label: "高", cls: "bg-red-100 text-red-700" },
   medium: { label: "中", cls: "bg-amber-100 text-amber-700" },
-  low: { label: "低", cls: "bg-slate-100 text-slate-600" },
+  low: { label: "低", cls: "bg-ink/6 text-slate-600" },
 };
 
-const COLUMNS: { key: TaskStatus; label: string; icon: LucideIcon; iconCls: string; tone: string }[] = [
-  { key: "todo", label: "待办", icon: CircleDashed, iconCls: "text-slate-500", tone: "bg-white/30" },
-  { key: "doing", label: "进行中", icon: Timer, iconCls: "text-indigo-500", tone: "bg-indigo-100/40" },
-  { key: "done", label: "已完成", icon: CircleCheckBig, iconCls: "text-emerald-500", tone: "bg-emerald-100/40" },
+const COLUMNS: { key: TaskStatus; label: string; icon: LucideIcon; iconCls: string }[] = [
+  { key: "todo", label: "待办", icon: CircleDashed, iconCls: "text-slate-500" },
+  { key: "doing", label: "进行中", icon: Timer, iconCls: "text-brand" },
+  { key: "done", label: "已完成", icon: CircleCheckBig, iconCls: "text-emerald-600" },
 ];
 
 type Draft = Omit<Task, "id" | "updated_at">;
@@ -78,8 +78,6 @@ export default function Work() {
     <div>
       <PageHeader
         title="工作"
-        icon={Briefcase}
-        tone="bg-indigo-500"
         sub="按优先级和截止日期排序"
         action={
           <button className="btn-primary" onClick={() => { setError(""); setEditing({ draft: { ...empty } }); }}>
@@ -92,20 +90,20 @@ export default function Work() {
         {COLUMNS.map((col, ci) => {
           const list = tasks.filter((t) => t.status === col.key);
           return (
-            <section key={col.key} className={`rounded-2xl border border-white/50 p-3 backdrop-blur-md ${col.tone}`}>
-              <h2 className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
+            <section key={col.key} className="rounded-[18px] bg-ink/[0.04] p-2.5">
+              <h2 className="mb-2.5 flex items-center gap-2 px-1.5 pt-1 text-sm font-medium">
                 <col.icon className={`size-4 ${col.iconCls}`} />
                 {col.label}
-                <span className="ml-auto rounded-full bg-white/70 px-2 text-xs text-slate-500">{list.length}</span>
+                <span className="ml-auto text-xs tabular-nums text-slate-400">{list.length}</span>
               </h2>
               <AnimatedDiv className="space-y-2">
                 {list.map((t) => {
                   const overdue = t.status !== "done" && t.due_date && t.due_date < t0;
                   return (
-                    <article key={t.id} className="card group p-3 transition hover:-translate-y-0.5 hover:shadow-xl">
+                    <article key={t.id} className="card group p-3 transition card-link">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className={`text-sm font-medium ${t.status === "done" ? "text-slate-400 line-through" : ""}`}>{t.title}</h3>
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${PRIORITY[t.priority].cls}`}>{PRIORITY[t.priority].label}</span>
+                        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs ${PRIORITY[t.priority].cls}`}>{PRIORITY[t.priority].label}</span>
                       </div>
                       {t.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{t.description}</p>}
                       {t.due_date && (

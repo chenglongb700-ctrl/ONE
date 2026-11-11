@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ErrorText } from "../components/Modal";
-import { Sprout } from "lucide-react";
+import { Mark, Wordmark } from "../components/Brand";
 
 export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   const { login, register } = useAuth();
@@ -31,13 +31,14 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="grid min-h-screen place-items-center p-4">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4 p-8">
-        <div className="text-center">
-          <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-lg shadow-emerald-900/20">
-            <Sprout className="size-6" strokeWidth={2.4} />
-          </span>
-          <h1 className="mt-2 text-xl font-bold">{isLogin ? "欢迎回来" : "创建账号"}</h1>
-          <p className="mt-1 text-sm text-slate-500">记录工作、生活与每一次感悟</p>
+      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4 rounded-[22px] p-8">
+        <div className="pb-2">
+          <div className="flex items-center gap-2.5">
+            <Mark />
+            <Wordmark className="text-[17px]" />
+          </div>
+          <h1 className="mt-7 text-[26px] font-light leading-tight tracking-wide">{isLogin ? "欢迎回来" : "创建账号"}</h1>
+          <p className="mt-1.5 text-sm text-slate-500">{isLogin ? "登录后继续安排今天。" : "工作、学习、习惯和日子，都放在这一个地方。"}</p>
         </div>
         <div>
           <label className="label">用户名</label>
@@ -54,12 +55,12 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
           </div>
         )}
         <ErrorText msg={error} />
-        <button className="btn-primary w-full" disabled={busy}>
+        <button className="btn-primary w-full py-2.5" disabled={busy}>
           {busy ? "请稍候…" : isLogin ? "登录" : "注册"}
         </button>
         <p className="text-center text-sm text-slate-500">
           {isLogin ? "还没有账号？" : "已有账号？"}
-          <Link className="ml-1 font-medium text-slate-800 underline" to={isLogin ? "/register" : "/login"}>
+          <Link className="ml-1 font-medium text-ink underline underline-offset-4" to={isLogin ? "/register" : "/login"}>
             {isLogin ? "去注册" : "去登录"}
           </Link>
         </p>

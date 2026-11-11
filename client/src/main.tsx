@@ -14,10 +14,11 @@ import Habits from "./pages/Habits";
 import { Toaster } from "sonner";
 import { ConfirmHost } from "./components/Confirm";
 import { MusicProvider } from "./music/MusicContext";
+import { useTheme } from "./theme";
 
 function Protected() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="grid h-screen place-items-center text-slate-400">加载中…</div>;
+  if (loading) return <div className="grid h-screen place-items-center text-sm text-slate-400">加载中…</div>;
   if (!user) return <Navigate to="/login" replace />;
   // 音乐播放器的状态放在页面之上：切换页面时音乐不会断
   return (
@@ -34,20 +35,24 @@ function GuestOnly({ mode }: { mode: "login" | "register" }) {
   return <AuthPage mode={mode} />;
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <div className="bg-blobs" aria-hidden>
-      <span className="left-[-8rem] top-[-6rem] size-[28rem] bg-indigo-300" />
-      <span className="right-[-6rem] top-[20%] size-[24rem] bg-pink-300 [animation-delay:-6s]" />
-      <span className="bottom-[-8rem] left-[30%] size-[30rem] bg-emerald-200 [animation-delay:-12s]" />
-    </div>
+// 提示条跟随当前主题
+function Toasts() {
+  const { theme } = useTheme();
+  return (
     <Toaster
+      theme={theme}
       position="top-center"
       richColors
       closeButton
       duration={2500}
-      toastOptions={{ className: "!rounded-xl !border-white/60 !shadow-lg !backdrop-blur-xl" }}
+      toastOptions={{ className: "!rounded-2xl !shadow-lg" }}
     />
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <Toasts />
     <ConfirmHost />
     <AuthProvider>
       <BrowserRouter>

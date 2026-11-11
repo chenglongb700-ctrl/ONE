@@ -57,7 +57,7 @@ export function ConfirmHost() {
         </button>
         <button
           ref={okRef}
-          className={danger ? "btn bg-red-600 text-white shadow-md shadow-red-900/10 hover:bg-red-700" : "btn-primary"}
+          className={danger ? "btn bg-red-600 text-paper hover:bg-red-700" : "btn-primary"}
           onClick={() => close(true)}
         >
           {req.confirmText ?? (danger ? "删除" : "确定")}

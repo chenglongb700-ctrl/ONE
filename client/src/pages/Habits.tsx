@@ -169,8 +169,6 @@ export default function Habits() {
     <div>
       <PageHeader
         title="习惯"
-        icon={CircleCheckBig}
-        tone="bg-rose-500"
         sub="每天一点点，看得见的坚持"
         action={
           <button className="btn-primary" onClick={() => { setError(""); setEditing({ draft: { name: "", icon: "✅", color: "emerald" } }); }}>
@@ -200,7 +198,7 @@ export default function Habits() {
                 <th className="w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/60">
+            <tbody className="divide-y divide-line">
               {active.map((h) => {
                 const dates = datesOf(h.id);
                 const s = streaks(dates, t0);
@@ -222,7 +220,7 @@ export default function Habits() {
                             onClick={() => toggle(h, d)}
                             aria-label={`${h.name} ${d} ${on ? "已打卡，点击取消" : "未打卡，点击打卡"}`}
                             className={`mx-auto grid size-8 place-items-center rounded-full text-white transition active:scale-90 ${
-                              on ? `${c.dot} shadow-sm` : `bg-white/50 ring-1 ring-inset ring-slate-300/70 hover:bg-white/80 ${d === t0 ? `ring-2 ${c.ring}` : ""}`
+                              on ? `${c.dot} shadow-sm` : `bg-ink/[0.05] hover:bg-ink/10 ${d === t0 ? `ring-2 ${c.ring}` : ""}`
                             }`}
                           >
                             {on && <Check className="size-4" strokeWidth={3} />}
@@ -264,7 +262,7 @@ export default function Habits() {
       {active.length > 0 && (
         <section className="card mb-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">
+            <h2 className="text-sm font-medium">
               近一年 · {focus === "all" ? "全部习惯" : habits.find((h) => h.id === focus)?.name}
               <span className="ml-2 font-normal text-slate-500">共打卡 {heat.total} 次</span>
             </h2>
@@ -273,7 +271,7 @@ export default function Habits() {
                 <button
                   key={o.id}
                   onClick={() => setFocus(o.id)}
-                  className={`rounded-full px-2.5 py-0.5 text-xs transition ${focus === o.id ? "bg-slate-800 text-white" : "bg-white/50 text-slate-600 ring-1 ring-white/70 hover:bg-white/70"}`}
+                  className={focus === o.id ? "chip-on" : "chip"}
                 >
                   {o.label}
                 </button>
@@ -302,7 +300,7 @@ export default function Habits() {
                         <span
                           key={cell.date}
                           title={`${cell.date}：${focus === "all" ? `${cell.count}/${heat.denom} 个习惯` : cell.count ? "已打卡" : "未打卡"}`}
-                          className={`size-[11px] rounded-[3px] ${cell.level === 0 ? "bg-slate-300/40" : heat.color.levels[cell.level - 1]} ${cell.date === t0 ? "ring-1 ring-slate-500" : ""}`}
+                          className={`size-[11px] rounded-[3px] ${cell.level === 0 ? "bg-ink/8" : heat.color.levels[cell.level - 1]} ${cell.date === t0 ? "ring-1 ring-slate-500" : ""}`}
                         />
                       ),
                     )}
@@ -313,7 +311,7 @@ export default function Habits() {
           </div>
           <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-slate-400">
             少
-            <span className="size-[11px] rounded-[3px] bg-slate-300/40" />
+            <span className="size-[11px] rounded-[3px] bg-ink/8" />
             {heat.color.levels.map((l) => (
               <span key={l} className={`size-[11px] rounded-[3px] ${l}`} />
             ))}
@@ -330,7 +328,7 @@ export default function Habits() {
             <ChevronDown className={`size-3.5 transition ${showArchived ? "rotate-180" : ""}`} />
           </button>
           {showArchived && (
-            <ul className="card mt-2 divide-y divide-white/60 p-0">
+            <ul className="card mt-2 divide-y divide-line p-0">
               {archived.map((h) => (
                 <li key={h.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                   <span className="text-lg">{h.icon}</span>
@@ -360,7 +358,7 @@ export default function Habits() {
                     type="button"
                     key={i}
                     onClick={() => setEditing({ ...editing, draft: { ...editing.draft, icon: i } })}
-                    className={`rounded-lg p-1.5 text-xl transition ${editing.draft.icon === i ? "bg-white/90 ring-2 ring-slate-400" : "hover:bg-white/60"}`}
+                    className={`rounded-lg p-1.5 text-xl transition ${editing.draft.icon === i ? "bg-brand/10 ring-2 ring-brand" : "hover:bg-ink/6"}`}
                   >
                     {i}
                   </button>
@@ -376,7 +374,7 @@ export default function Habits() {
                     key={c}
                     aria-label={COLORS[c].name}
                     onClick={() => setEditing({ ...editing, draft: { ...editing.draft, color: c } })}
-                    className={`size-7 rounded-full ${COLORS[c].dot} transition ${editing.draft.color === c ? "ring-2 ring-slate-700 ring-offset-2" : "opacity-70 hover:opacity-100"}`}
+                    className={`size-7 rounded-full ${COLORS[c].dot} transition ${editing.draft.color === c ? "ring-2 ring-ink ring-offset-2 ring-offset-transparent" : "opacity-70 hover:opacity-100"}`}
                   />
                 ))}
               </div>
