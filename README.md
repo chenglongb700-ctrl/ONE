@@ -18,6 +18,7 @@
 - **生活**：生活清单（分类、日期、勾选完成）+ 记账（按月查看、收支汇总、支出分类占比）
 - **感悟**：日记卡片，心情、标签筛选、全文搜索
 - **外观**：干净的实心卡片，侧边栏和播放条是毛玻璃，全站只用一个强调色（钴蓝）；浅色 / 深色两套主题，默认跟随系统，侧边栏底部的按钮可以手动切换
+- **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调侧边栏和播放条的玻璃通透度、开关音乐自动播放；这些偏好存在浏览器本地，改了立刻生效
 - **音乐**：底部播放条，切换页面不中断。可以上传音频文件（mp3 / m4a / flac / wav 等，单个最大 100 MB）或添加音频链接；列表循环、单曲循环、随机播放；LRC 歌词滚动显示，点歌词跳转；频谱可视化（Web Audio）；可设置进入网站后第一次点击时自动播放
 
 ## 运行
@@ -57,9 +58,9 @@ server/src/
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
-  theme.ts        浅色 / 深色主题切换
+  theme.ts        外观偏好：主题、强调色、玻璃通透度
   index.css       设计变量（配色、卡片和玻璃、深色模式映射）和通用样式
-  components/     Layout 侧边栏、Modal、Brand 标志等
+  components/     Layout 侧边栏、Settings 设置弹窗、Modal、Brand 标志等
   music/          MusicContext 播放状态、PlayerBar 播放条、Spectrum 频谱、lrc 歌词解析
   pages/          AuthPage / Dashboard / Work / Learning / Habits / Life / Journal
 ```

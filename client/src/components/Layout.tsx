@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Briefcase, CircleCheckBig, LayoutDashboard, Leaf, LogOut, Moon, PenLine, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { BookOpen, Briefcase, CircleCheckBig, LayoutDashboard, Leaf, LogOut, Moon, PenLine, Settings as SettingsIcon, Sun, SunMoon, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
 import { Mark, Wordmark } from "./Brand";
+import Settings from "./Settings";
 
 export const MODULES: Record<string, { label: string; icon: LucideIcon }> = {
   "/": { label: "总览", icon: LayoutDashboard },
@@ -27,6 +29,7 @@ export default function Layout() {
   const location = useLocation();
   const { pref } = useTheme();
   const T = THEMES[pref];
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const onLogout = async () => {
     await logout();
@@ -69,8 +72,12 @@ export default function Layout() {
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-ink/8 text-xs font-medium">{user?.username.slice(0, 1).toUpperCase()}</span>
             <span className="truncate text-sm text-slate-600">{user?.username}</span>
           </span>
-          <button className="btn-ghost p-2" onClick={() => setThemePref(T.next)} title={`主题：${T.label}（点击切换）`} aria-label={`主题：${T.label}，点击切换`}>
+          {/* 手机上位置紧，主题切换收进设置里 */}
+          <button className="btn-ghost hidden p-2 md:inline-flex" onClick={() => setThemePref(T.next)} title={`主题：${T.label}（点击切换）`} aria-label={`主题：${T.label}，点击切换`}>
             <T.icon className="size-4" />
+          </button>
+          <button className="btn-ghost p-2" onClick={() => setSettingsOpen(true)} title="设置" aria-label="设置">
+            <SettingsIcon className="size-4" />
           </button>
           <button className="btn-ghost p-2" onClick={onLogout} title="退出登录" aria-label="退出登录">
             <LogOut className="size-4" />
@@ -82,6 +89,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <PlayerBar />
+      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} onLogout={onLogout} />}
     </div>
   );
 }

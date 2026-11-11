@@ -17,7 +17,7 @@ export default function Spectrum({
   className?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const { theme } = useTheme(); // 换主题时重新取一次颜色
+  const { theme, accent } = useTheme(); // 换主题或强调色时重新取一次颜色
 
   useEffect(() => {
     const cv = canvas.current;
@@ -92,7 +92,7 @@ export default function Spectrum({
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [analyser, playing, bars, theme]);
+  }, [analyser, playing, bars, theme, accent]);
 
   return <canvas ref={canvas} className={className} aria-hidden />;
 }

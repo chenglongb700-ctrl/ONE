@@ -22,7 +22,7 @@
   --bg-tide: #e2e8f8;
   --glow-side: #b7cbf5;    /* 侧边栏背后的一团蓝光：玻璃要有东西可透 */
   --glow-dock: #f2d9c6;    /* 播放条背后的一团暖光 */
-  --glass-fill: 38%;       /* 玻璃有多实：越小越透 */
+  --glass-fill: 38%;       /* 玻璃有多实：越小越透（"设置"里的滑块会覆盖它） */
   --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 58%);
 
   --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.75);
@@ -155,6 +155,16 @@
   --color-violet-900: oklch(94.3% 0.029 294.588);
   --color-violet-950: oklch(96.9% 0.016 293.756);
 }
+
+/* 可在"设置"里换的强调色（默认钴蓝写在上面）。每种颜色有浅色、深色两个色值 */
+:root[data-accent="teal"] { --brand: #0b7d84; }
+:root[data-accent="orange"] { --brand: #c2570c; }
+:root[data-accent="rose"] { --brand: #cf3360; }
+:root[data-accent="violet"] { --brand: #6d4bd8; }
+:root[data-theme="dark"][data-accent="teal"] { --brand: #5fcfd3; }
+:root[data-theme="dark"][data-accent="orange"] { --brand: #f5a25d; }
+:root[data-theme="dark"][data-accent="rose"] { --brand: #ff8fab; }
+:root[data-theme="dark"][data-accent="violet"] { --brand: #a996ff; }
 
 @theme inline {
   /* 系统字体：Windows 上是 Segoe UI + 微软雅黑，Mac 上是苹方，不用下载 */
