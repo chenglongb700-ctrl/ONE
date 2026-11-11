@@ -4,6 +4,7 @@ import { BookOpen, Briefcase, CircleCheckBig, LayoutDashboard, Leaf, LogOut, Moo
 import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
+import Avatar from "./Avatar";
 import { Mark, Wordmark } from "./Brand";
 import Settings from "./Settings";
 
@@ -69,7 +70,7 @@ export default function Layout() {
 
         <div className="flex items-center gap-1 md:mt-auto md:border-t md:border-line md:pt-3">
           <span className="hidden min-w-0 flex-1 items-center gap-2 px-1.5 md:flex" title={user?.username}>
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-ink/8 text-xs font-medium">{user?.username.slice(0, 1).toUpperCase()}</span>
+            <Avatar user={user} className="size-7 text-xs" />
             <span className="truncate text-sm text-slate-600">{user?.username}</span>
           </span>
           {/* 手机上位置紧，主题切换收进设置里 */}

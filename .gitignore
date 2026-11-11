@@ -3,4 +3,5 @@ dist/
 server/data/*.db*
 .env
 server/data/music/
+server/data/avatars/
 *.tsbuildinfo

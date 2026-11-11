@@ -1,5 +1,8 @@
-import type { ReactNode } from "react";
-import { Check, LogOut, Moon, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { Check, ImageUp, LogOut, Moon, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { toast } from "sonner";
+import { api, uploadFile, type User } from "../api";
+import Avatar, { squareAvatar } from "./Avatar";
 import Modal from "./Modal";
 import { useAuth } from "../context/AuthContext";
 import { useMusic } from "../music/MusicContext";
@@ -35,12 +38,45 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-/** 设置弹窗。外观和音乐偏好只存在这台电脑的浏览器里，改了立刻生效，不需要保存按钮 */
+/** 设置弹窗。外观和音乐偏好只存在这台电脑的浏览器里，头像存在服务器上；都是改了立刻生效，不需要保存按钮 */
 export default function Settings({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { pref, theme, accent, glass } = useTheme();
   const music = useMusic();
   const glassValue = glass ?? GLASS_DEFAULT[theme];
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  // 头像跟着账号走（存在服务器上），和上面那些只存在浏览器里的外观偏好不同
+  const pickAvatar = async (file: File | undefined) => {
+    if (fileRef.current) fileRef.current.value = ""; // 清空，这样下次选同一张图也会触发
+    if (!file) return;
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", await squareAvatar(file), "avatar.webp");
+      updateUser(await uploadFile<User>("/avatar", form));
+      toast.success("头像已更换");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      await api.del("/avatar");
+      updateUser({ ...user, avatar: null });
+      toast.success("头像已移除");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Modal title="设置" onClose={onClose}>
@@ -123,9 +159,27 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
         </Section>
 
         <Section title="账号">
-          <Row label={user?.username ?? ""} hint="当前登录的账号">
+          <div className="flex items-center gap-4">
+            <Avatar user={user} className="size-14 text-xl" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium">{user?.username}</div>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                <button className="btn bg-ink/6 px-2.5 py-1 text-xs hover:bg-ink/10" disabled={busy} onClick={() => fileRef.current?.click()}>
+                  <ImageUp className="size-3.5" /> {busy ? "上传中…" : user?.avatar ? "更换头像" : "上传头像"}
+                </button>
+                {user?.avatar && (
+                  <button className="btn-ghost px-2.5 py-1 text-xs" disabled={busy} onClick={removeAvatar}>
+                    移除头像
+                  </button>
+                )}
+              </div>
+              <div className="mt-1.5 text-xs text-slate-500">图片会自动裁成正方形，取正中间的部分。</div>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickAvatar(e.target.files?.[0])} />
+          </div>
+          <Row label="退出登录" hint="退出后需要重新输入密码">
             <button className="btn-danger" onClick={onLogout}>
-              <LogOut className="size-4" /> 退出登录
+              <LogOut className="size-4" /> 退出
             </button>
           </Row>
         </Section>

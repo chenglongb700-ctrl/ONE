@@ -7,6 +7,8 @@ type AuthCtx = {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** 资料变了（比如换了头像）以后，用新的用户信息替换当前的 */
+  updateUser: (u: User) => void;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post("/auth/logout");
       setUser(null);
     },
+    updateUser: setUser,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

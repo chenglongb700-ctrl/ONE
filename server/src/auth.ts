@@ -26,6 +26,15 @@ function issue(res: Response, userId: number) {
   res.cookie(COOKIE, token, COOKIE_OPTS);
 }
 
+/** 返回给前端的用户信息（不含密码）。avatar 是头像地址，没设置时为 null */
+export function publicUser(id: number) {
+  const u = db.prepare("SELECT id, username, avatar FROM users WHERE id = ?").get(id) as
+    | { id: number; username: string; avatar: string | null }
+    | undefined;
+  if (!u) return null;
+  return { id: u.id, username: u.username, avatar: u.avatar ? `/api/avatar/file?v=${encodeURIComponent(u.avatar)}` : null };
+}
+
 export const authRouter = Router();
 
 authRouter.post("/register", (req, res) => {
@@ -36,7 +45,7 @@ authRouter.post("/register", (req, res) => {
   const r = db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(username, hash);
   const id = Number(r.lastInsertRowid);
   issue(res, id);
-  res.status(201).json({ id, username });
+  res.status(201).json(publicUser(id));
 });
 
 authRouter.post("/login", (req, res) => {
@@ -48,7 +57,7 @@ authRouter.post("/login", (req, res) => {
     return void res.status(401).json({ error: "用户名或密码错误" });
   }
   issue(res, user.id);
-  res.json({ id: user.id, username: user.username });
+  res.json(publicUser(user.id));
 });
 
 authRouter.post("/logout", (_req, res) => {
@@ -69,7 +78,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 authRouter.get("/me", requireAuth, (req, res) => {
-  const user = db.prepare("SELECT id, username FROM users WHERE id = ?").get(req.userId!);
+  const user = publicUser(req.userId!);
   if (!user) return void res.status(401).json({ error: "用户不存在" });
   res.json(user);
 });

@@ -18,7 +18,7 @@
 - **生活**：生活清单（分类、日期、勾选完成）+ 记账（按月查看、收支汇总、支出分类占比）
 - **感悟**：日记卡片，心情、标签筛选、全文搜索
 - **外观**：干净的实心卡片，侧边栏和播放条是毛玻璃，全站只用一个强调色（钴蓝）；浅色 / 深色两套主题，默认跟随系统，侧边栏底部的按钮可以手动切换
-- **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调侧边栏和播放条的玻璃通透度、开关音乐自动播放；这些偏好存在浏览器本地，改了立刻生效
+- **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调侧边栏和播放条的玻璃通透度、开关音乐自动播放（这些偏好存在浏览器本地，改了立刻生效）；还可以上传头像，图片自动裁成正方形，头像跟着账号走
 - **音乐**：底部播放条，切换页面不中断。可以上传音频文件（mp3 / m4a / flac / wav 等，单个最大 100 MB）或添加音频链接；列表循环、单曲循环、随机播放；LRC 歌词滚动显示，点歌词跳转；频谱可视化（Web Audio）；可设置进入网站后第一次点击时自动播放
 
 ## 运行
@@ -35,7 +35,7 @@ npm run dev
 - 前端开发服务器：5173（`/api` 请求代理到后端）
 - 后端 API：3001
 - 数据库文件：`server/data/app.db`（首次启动自动创建）
-- 上传的音乐：`server/data/music/`（不进 git，换电脑或备份时要和数据库一起带走）
+- 上传的音乐和头像：`server/data/music/`、`server/data/avatars/`（不进 git，换电脑或备份时要和数据库一起带走）
 
 ### 生产部署
 
@@ -54,7 +54,7 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / stats
+  routes/         tasks / life / expenses / journals / learning / habits / music / avatar / stats
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -72,7 +72,9 @@ client/src/
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | POST | `/auth/register` `/auth/login` `/auth/logout` | 账号 |
-| GET | `/auth/me` | 当前用户 |
+| GET | `/auth/me` | 当前用户 `{id, username, avatar}` |
+| POST / DELETE | `/avatar` | 上传头像（multipart，字段名 `file`，PNG / JPG / WebP，最大 2 MB）/ 移除头像 |
+| GET | `/avatar/file` | 读取自己的头像 |
 | GET / POST | `/tasks` `/life` `/expenses` `/journals` `/learning` `/learning-logs` `/habits` | 列表 / 新建 |
 | PUT / DELETE | `/tasks/:id` 等 | 修改（可只传部分字段）/ 删除 |
 | GET | `/stats` | 首页统计 |

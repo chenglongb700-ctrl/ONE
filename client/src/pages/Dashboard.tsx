@@ -144,19 +144,26 @@ export default function Dashboard() {
   const summary = !s ? "" : total === 0 ? "今天还没有安排。" : left === 0 ? "今天的事都做完了。" : `今天还有 ${left} 件事。`;
 
   return (
-    <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
+    // 两行两列的网格：第一行是问候语和日期（字号、行数一致，所以左右对齐），第二行是两栏内容，顶边齐平
+    <div className="grid gap-x-8 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <header className="mb-6 min-w-0">
+        <p className="mb-1 text-sm text-slate-500 lg:hidden">
+          {dateText} {weekday}
+        </p>
+        <h1 className="text-[28px] font-light leading-tight tracking-wide">
+          {greeting()}，{user?.username}
+        </h1>
+        <p className="mt-1.5 h-5 text-sm text-slate-500">{summary}</p>
+      </header>
+
+      {/* 手机上日期已经显示在问候语上方，这一块只在宽屏出现 */}
+      <div className="mb-6 hidden min-w-0 lg:block">
+        <p className="font-display text-[28px] font-light leading-tight tracking-wide tabular-nums">{dateText}</p>
+        <p className="mt-1.5 h-5 text-sm text-slate-500">{weekday}</p>
+      </div>
+
       {/* 左栏：今天要做的事 */}
       <div className="min-w-0">
-        <header className="mb-6">
-          <p className="mb-1 text-sm text-slate-500 lg:hidden">
-            {dateText} {weekday}
-          </p>
-          <h1 className="text-[28px] font-light leading-tight tracking-wide">
-            {greeting()}，{user?.username}
-          </h1>
-          <p className="mt-1.5 h-5 text-sm text-slate-500">{summary}</p>
-        </header>
-
         <div className="card p-0">
           <Group title="工作" to="/work" linkText="打开看板" empty="没有进行中或到期的任务。">
             {tasks.map((t) => {
@@ -202,18 +209,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 右栏：日期和各项数字 */}
-      <aside className="min-w-0 space-y-6">
-        <div className="hidden lg:block">
-          <p className="font-display text-6xl font-light leading-none tracking-tight tabular-nums" aria-label={dateText}>
-            {now.getMonth() + 1}
-            <span className="mx-1 font-sans text-xl font-light">月</span>
-            {now.getDate()}
-            <span className="ml-1 font-sans text-xl font-light">日</span>
-          </p>
-          <p className="mt-2 text-sm text-slate-500">{weekday}</p>
-        </div>
-
+      {/* 右栏：各项数字和最近的感悟 */}
+      <aside className="mt-6 min-w-0 space-y-6 lg:mt-0">
         {!s ? (
           <div className="card h-56 animate-pulse" />
         ) : (

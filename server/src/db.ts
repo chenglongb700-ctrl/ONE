@@ -124,6 +124,7 @@ function ensureColumn(table: string, column: string, definition: string) {
 }
 
 ensureColumn("habits", "color", "TEXT NOT NULL DEFAULT 'emerald'");
+ensureColumn("users", "avatar", "TEXT"); // 头像文件名，文件在 data/avatars/
 
 // 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）
 db.exec(`
