@@ -90,7 +90,7 @@ export default function Work() {
         {COLUMNS.map((col, ci) => {
           const list = tasks.filter((t) => t.status === col.key);
           return (
-            <section key={col.key} className="rounded-[18px] bg-ink/[0.04] p-2.5">
+            <section key={col.key} className="rounded-[24px] bg-ink/[0.06] p-2.5">
               <h2 className="mb-2.5 flex items-center gap-2 px-1.5 pt-1 text-sm font-medium">
                 <col.icon className={`size-4 ${col.iconCls}`} />
                 {col.label}
@@ -100,7 +100,7 @@ export default function Work() {
                 {list.map((t) => {
                   const overdue = t.status !== "done" && t.due_date && t.due_date < t0;
                   return (
-                    <article key={t.id} className="card group p-3 transition card-link">
+                    <article key={t.id} className="card card-link group rounded-2xl p-3">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className={`text-sm font-medium ${t.status === "done" ? "text-slate-400 line-through" : ""}`}>{t.title}</h3>
                         <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs ${PRIORITY[t.priority].cls}`}>{PRIORITY[t.priority].label}</span>

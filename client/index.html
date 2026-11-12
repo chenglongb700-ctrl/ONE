@@ -3,18 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2317212f'/><circle cx='15' cy='17' r='8' fill='none' stroke='white' stroke-width='2.4'/><circle cx='23.5' cy='8.5' r='3.4' fill='%237fa4ff'/></svg>" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23142445'/><circle cx='15' cy='17' r='8' fill='none' stroke='white' stroke-width='2.4'/><circle cx='23.5' cy='8.5' r='3.4' fill='%23ffd08a'/></svg>" />
     <title>ONE · 个人管理</title>
     <script>
       // 在页面渲染前就定好主题、强调色和玻璃通透度，避免闪一下（逻辑和 src/theme.ts 一致）
       (function () {
         var t = null;
-        try { t = localStorage.getItem("one-theme"); } catch (e) {}
-        if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        try { t = localStorage.getItem("one-theme-2"); } catch (e) {}
+        if (t === "system") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        else if (t !== "light") t = "dark"; // 没选过就用黄昏
         document.documentElement.dataset.theme = t;
         try {
-          var look = JSON.parse(localStorage.getItem("one-look") || "{}");
-          if (/^(teal|orange|rose|violet)$/.test(look.accent)) document.documentElement.dataset.accent = look.accent;
+          var look = JSON.parse(localStorage.getItem("one-look-2") || "{}");
+          if (/^(cobalt|teal|orange|rose|violet)$/.test(look.accent)) document.documentElement.dataset.accent = look.accent;
           if (typeof look.glass === "number" && look.glass >= 15 && look.glass <= 85) document.documentElement.style.setProperty("--glass-fill", look.glass + "%");
         } catch (e) {}
       })();

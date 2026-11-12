@@ -171,7 +171,7 @@ export default function PlayerBar() {
       <div data-music-player className="fixed inset-x-0 bottom-0 z-40 md:bottom-3 md:left-[15.5rem] md:right-3">
         {panel && (
           <div className="absolute bottom-full right-0 w-full px-2 pb-2 md:w-[26rem] md:px-0">
-            <section className="modal-panel glass flex max-h-[min(60vh,30rem)] flex-col overflow-hidden rounded-[22px] bg-surface">
+            <section className="modal-panel glass-strong flex max-h-[min(60vh,30rem)] flex-col overflow-hidden rounded-[24px]">
               <header className="flex items-center gap-1 border-b border-line p-2">
                 {(["list", "lyrics"] as const).map((k) => (
                   <button
@@ -255,7 +255,7 @@ export default function PlayerBar() {
           </div>
         )}
 
-        <div className="glass relative flex items-center gap-2 border-x-0 border-b-0 px-3 py-2 md:gap-3 md:rounded-[22px] md:border md:px-4">
+        <div className="glass relative flex items-center gap-2 border-x-0 border-b-0 px-3 py-2 md:gap-3 md:rounded-[24px] md:border md:px-4">
           {/* 较窄时：顶边一条细进度线，点击或按左右方向键跳转；够宽（xl）时用下面可拖动的进度条 */}
           <div
             className="absolute inset-x-0 -top-1.5 h-4 cursor-pointer md:inset-x-4 xl:hidden"

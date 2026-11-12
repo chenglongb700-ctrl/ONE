@@ -56,9 +56,9 @@ const ROW = "flex items-center gap-3 px-5 py-2 text-sm";
 
 function Figure({ to, label, value, unit, hint, warn }: { to: string; label: string; value: string | number; unit?: string; hint: string; warn?: boolean }) {
   return (
-    <Link to={to} className="block px-4 py-3.5 shadow-[1px_0_0_var(--line),0_1px_0_var(--line)] transition-colors hover:bg-ink/[0.03]">
+    <Link to={to} className="card card-link block px-[1.125rem] py-4">
       <div className="text-xs text-slate-500">{label}</div>
-      <div className="mt-1.5 font-display text-2xl font-light leading-none tabular-nums">
+      <div className="mt-2.5 font-display text-[2rem] font-extralight leading-none tabular-nums">
         {value}
         {unit && <span className="ml-1 font-sans text-xs font-normal text-slate-500">{unit}</span>}
       </div>
@@ -145,21 +145,26 @@ export default function Dashboard() {
 
   return (
     // 两行两列的网格：第一行是问候语和日期（字号、行数一致，所以左右对齐），第二行是两栏内容，顶边齐平
-    <div className="grid gap-x-8 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-      <header className="mb-6 min-w-0">
+    <div className="grid gap-x-4 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <header className="mb-6 min-w-0 self-end">
         <p className="mb-1 text-sm text-slate-500 lg:hidden">
           {dateText} {weekday}
         </p>
-        <h1 className="text-[28px] font-light leading-tight tracking-wide">
+        <h1 className="text-[30px] font-light leading-tight tracking-wide">
           {greeting()}，{user?.username}
         </h1>
         <p className="mt-1.5 h-5 text-sm text-slate-500">{summary}</p>
       </header>
 
       {/* 手机上日期已经显示在问候语上方，这一块只在宽屏出现 */}
-      <div className="mb-6 hidden min-w-0 lg:block">
-        <p className="font-display text-[28px] font-light leading-tight tracking-wide tabular-nums">{dateText}</p>
-        <p className="mt-1.5 h-5 text-sm text-slate-500">{weekday}</p>
+      <div className="mb-6 hidden min-w-0 self-end text-right lg:block">
+        <p className="mb-1 text-sm text-slate-500">{weekday}</p>
+        <p className="font-display text-[4rem] font-extralight leading-[0.9] tracking-tight tabular-nums" aria-label={dateText}>
+          {now.getMonth() + 1}
+          <span className="mx-1 font-sans text-xl font-light">月</span>
+          {now.getDate()}
+          <span className="ml-1 font-sans text-xl font-light">日</span>
+        </p>
       </div>
 
       {/* 左栏：今天要做的事 */}
@@ -210,13 +215,12 @@ export default function Dashboard() {
       </div>
 
       {/* 右栏：各项数字和最近的感悟 */}
-      <aside className="mt-6 min-w-0 space-y-6 lg:mt-0">
+      <aside className="mt-4 min-w-0 space-y-4 lg:mt-0">
         {!s ? (
           <div className="card h-56 animate-pulse" />
         ) : (
           <>
-            <section className="card overflow-hidden p-0" aria-label="各项数字">
-              <div className="-mb-px -mr-px grid grid-cols-2">
+            <section className="grid grid-cols-2 gap-4" aria-label="各项数字">
                 <Figure
                   to="/work"
                   label="工作待处理"
@@ -235,11 +239,10 @@ export default function Dashboard() {
                 <Figure to="/life" label="生活清单" value={s.life.pending} unit="项" hint={`其中今天 ${s.life.today} 项`} />
                 <Figure to="/life" label="本月结余" value={(s.money.income - s.money.expense).toFixed(0)} unit="元" hint={`支出 ${s.money.expense.toFixed(0)}`} />
                 <Figure to="/journal" label="感悟" value={s.journalCount} unit="篇" hint={s.recentJournals[0] ? `最近 ${s.recentJournals[0].date.slice(5)}` : "还没有开始写"} />
-              </div>
             </section>
 
-            <section>
-              <div className="mb-1 flex items-baseline justify-between">
+            <section className="card">
+              <div className="mb-2 flex items-baseline justify-between">
                 <h2 className="text-sm font-medium">最近的感悟</h2>
                 <Link to="/journal" className="text-xs text-slate-500 underline-offset-4 hover:text-ink hover:underline">
                   查看全部

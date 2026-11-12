@@ -20,9 +20,9 @@ export const MODULES: Record<string, { label: string; icon: LucideIcon }> = {
 
 // 主题按钮：点一下换到下一种
 const THEMES: Record<ThemePref, { label: string; icon: LucideIcon; next: ThemePref }> = {
-  system: { label: "跟随系统", icon: SunMoon, next: "light" },
-  light: { label: "浅色", icon: Sun, next: "dark" },
-  dark: { label: "深色", icon: Moon, next: "system" },
+  dark: { label: "黄昏", icon: Moon, next: "light" },
+  light: { label: "晨曦", icon: Sun, next: "system" },
+  system: { label: "跟随系统", icon: SunMoon, next: "dark" },
 };
 
 export default function Layout() {
@@ -40,7 +40,7 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="glass sticky top-0 z-40 flex shrink-0 items-center justify-between border-x-0 border-t-0 px-3 py-2 md:top-3 md:m-3 md:h-[calc(100vh-1.5rem)] md:w-56 md:flex-col md:items-stretch md:justify-start md:rounded-[22px] md:border md:px-3 md:py-5">
+      <aside className="glass sticky top-0 z-40 flex shrink-0 items-center justify-between border-x-0 border-t-0 px-3 py-2 md:top-3 md:m-3 md:h-[calc(100vh-1.5rem)] md:w-56 md:flex-col md:items-stretch md:justify-start md:rounded-[24px] md:border md:px-3 md:py-5">
         <div className="flex items-center gap-2.5 px-1 md:mb-7 md:px-2.5">
           <Mark />
           <Wordmark className="hidden text-[17px] sm:inline" />
@@ -55,7 +55,7 @@ export default function Layout() {
               title={m.label}
               className={({ isActive }) =>
                 `group flex items-center gap-3 rounded-[10px] px-2 py-2 text-sm transition md:px-2.5 ${
-                  isActive ? "bg-glass/90 font-medium text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06),0_0_0_1px_var(--line)]" : "text-slate-600 hover:bg-glass/50 hover:text-ink"
+                  isActive ? "bg-surface font-medium text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.22)]" : "text-slate-600 hover:bg-ink/8 hover:text-ink"
                 }`
               }
             >

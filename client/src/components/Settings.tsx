@@ -9,13 +9,13 @@ import { useMusic } from "../music/MusicContext";
 import { ACCENTS, GLASS_RANGE, setAccent, setGlass, setThemePref, useTheme, type Accent, type ThemePref } from "../theme";
 
 const THEME_OPTIONS: { key: ThemePref; label: string; icon: LucideIcon }[] = [
+  { key: "dark", label: "黄昏", icon: Moon },
+  { key: "light", label: "晨曦", icon: Sun },
   { key: "system", label: "跟随系统", icon: SunMoon },
-  { key: "light", label: "浅色", icon: Sun },
-  { key: "dark", label: "深色", icon: Moon },
 ];
 
 // 没动过滑块时，滑块停在主题自带的默认值上（和 index.css 里的 --glass-fill 一致）
-const GLASS_DEFAULT = { light: 38, dark: 32 };
+const GLASS_DEFAULT = { light: 46, dark: 36 };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -82,7 +82,7 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
     <Modal title="设置" onClose={onClose}>
       <div className="max-h-[70vh] overflow-y-auto pr-1">
         <Section title="外观">
-          <Row label="主题">
+          <Row label="主题" hint="黄昏是深色，晨曦是浅色">
             <div className="flex rounded-xl bg-ink/6 p-1 text-sm" role="radiogroup" aria-label="主题">
               {THEME_OPTIONS.map((o) => (
                 <button
@@ -111,7 +111,7 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
                   onClick={() => setAccent(a)}
                   style={{ backgroundColor: ACCENTS[a].swatch }}
                   className={`grid size-7 cursor-pointer place-items-center rounded-full text-white transition active:scale-90 ${
-                    accent === a ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : "opacity-80 hover:opacity-100"
+                    accent === a ? "ring-2 ring-ink ring-offset-2 ring-offset-transparent" : "opacity-80 hover:opacity-100"
                   }`}
                 >
                   {accent === a && <Check className="size-4" strokeWidth={3} />}
@@ -131,7 +131,7 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
                 </button>
               )}
             </div>
-            <div className="mt-0.5 text-xs text-slate-500">侧边栏和播放条的毛玻璃有多透</div>
+            <div className="mt-0.5 text-xs text-slate-500">所有玻璃面板有多透</div>
             <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
               <span>更透</span>
               <input

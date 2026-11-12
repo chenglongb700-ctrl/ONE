@@ -1,76 +1,75 @@
 @import "tailwindcss";
 
-/* 深色模式看 <html data-theme="dark">，由 theme.ts 设置（跟随系统或手动切换） */
+/* 深色模式看 <html data-theme="dark">，由 theme.ts 设置 */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /*
- * 设计变量。整站只有一个强调色（--brand，钴蓝），其余是墨色文字和干净的实心卡片。
+ * 设计变量 ——「琉璃」：一张铺满全屏的天空壁纸，所有面板都是透光的毛玻璃。
+ *   深色 = 黄昏（深蓝到暖橙，浅色文字）    浅色 = 晨曦（淡蓝到淡粉，深色文字）
  * 换主题时只改这一组变量，页面里的类名不用动。
  */
 :root {
-  --ink: #17212f;          /* 正文、主按钮 */
-  --paper: #ffffff;        /* 墨色按钮上的文字 */
-  --surface: #ffffff;      /* 卡片、弹窗的实心底色 */
-  --glass: #ffffff;        /* 玻璃的底色，配合透明度使用（侧边栏、播放条） */
-  --edge: #ffffff;         /* 玻璃边缘的高光线 */
-  --line: rgb(23 33 47 / 0.09);  /* 分隔线、描边 */
-  --brand: #2452d6;
+  --ink: #16202e;                       /* 正文、主按钮 */
+  --paper: #ffffff;                     /* 墨色按钮上的文字 */
+  --surface: rgb(255 255 255 / 0.72);   /* 玻璃上再凸起一层的小块：选中的分段、筛选标签 */
+  --glass: #ffffff;                     /* 玻璃的底色，和 --glass-fill 一起决定有多透 */
+  --glass-fill: 46%;                    /* 玻璃有多实：越小越透（"设置"里的滑块会覆盖它） */
+  --dialog: rgb(246 248 252 / 0.88);    /* 弹窗：比普通玻璃实得多，保证表单读得清 */
+  --edge: rgb(255 255 255 / 0.75);      /* 玻璃边缘的高光线 */
+  --line: rgb(22 32 46 / 0.1);          /* 分隔线、描边 */
+  --brand: #b4690e;                     /* 唯一的强调色，默认琥珀金 */
 
-  --bg: #f0f2f6;
-  --bg-sky: #dce7f6;
-  --bg-sand: #f6ede2;
-  --bg-tide: #e2e8f8;
-  --glow-side: #b7cbf5;    /* 侧边栏背后的一团蓝光：玻璃要有东西可透 */
-  --glow-dock: #f2d9c6;    /* 播放条背后的一团暖光 */
-  --glass-fill: 38%;       /* 玻璃有多实：越小越透（"设置"里的滑块会覆盖它） */
-  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 58%);
+  --bg: #dde8f8;
+  --wallpaper:
+    radial-gradient(60% 50% at 82% 110%, #ffd9b8 0, #ffc9a8 26%, transparent 64%),
+    radial-gradient(70% 55% at 12% 112%, #d9cdf5 0, transparent 60%),
+    radial-gradient(90% 70% at 50% -12%, #b9d2f4 0, #cfe0f7 46%, transparent 76%),
+    linear-gradient(180deg, #c4d9f5 0%, #dde8f8 42%, #f0e4ee 72%, #fbdcc8 100%);
 
-  --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.75);
-  --glass-rim: 0 0 0 1px rgb(23 33 47 / 0.035);
-  --glass-shadow: 0 18px 44px -20px rgb(38 62 96 / 0.28);
-  --card-shadow: 0 1px 2px rgb(23 33 47 / 0.04), 0 10px 24px -18px rgb(38 62 96 / 0.22);
-  --veil: rgb(23 33 47 / 0.22);
+  --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.8);
+  --glass-shadow: 0 24px 48px -28px rgb(40 60 100 / 0.45);
+  --dialog-shadow: 0 40px 90px -30px rgb(30 45 80 / 0.55);
+  --veil: rgb(22 32 46 / 0.3);
 
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --ink: #eef2f7;
-  --paper: #111a26;
-  --surface: #17212e;
-  --glass: #34455c;
-  --edge: rgb(255 255 255 / 0.13);
-  --line: rgb(255 255 255 / 0.09);
-  --brand: #7fa4ff;
+  --ink: #f4f6fb;
+  --paper: #1a2340;
+  --surface: rgb(255 255 255 / 0.16);
+  --glass: #121a30;
+  --glass-fill: 36%;
+  --dialog: rgb(24 32 58 / 0.84);
+  --edge: rgb(255 255 255 / 0.16);
+  --line: rgb(255 255 255 / 0.12);
+  --brand: #ffd08a;
 
-  --bg: #0d141d;
-  --bg-sky: #14263e;
-  --bg-sand: #221d29;
-  --bg-tide: #152345;
-  --glow-side: #1b3360;
-  --glow-dock: #3a2c4f;
-  --glass-fill: 32%;
-  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0) 58%);
+  --bg: #0c1836;
+  --wallpaper:
+    radial-gradient(60% 50% at 80% 112%, #f0a070 0, #d9694f 24%, transparent 64%),
+    radial-gradient(70% 55% at 16% 114%, #5b3f8c 0, transparent 60%),
+    radial-gradient(90% 70% at 50% -10%, #0b1a3a 0, #14294f 45%, transparent 75%),
+    linear-gradient(180deg, #0c1836 0%, #1f3460 44%, #4a4580 72%, #8a5a78 100%);
 
-  --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.07);
-  --glass-rim: 0 0 0 1px rgb(0 0 0 / 0.25);
-  --glass-shadow: 0 20px 48px -20px rgb(0 0 0 / 0.65);
-  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 24px -18px rgb(0 0 0 / 0.6);
-  --veil: rgb(0 0 0 / 0.5);
+  --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.18);
+  --glass-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.5);
+  --dialog-shadow: 0 40px 90px -30px rgb(0 0 0 / 0.7);
+  --veil: rgb(6 10 24 / 0.55);
 
   color-scheme: dark;
 
-  /* 灰阶整体翻转：text-slate-800 在深色下变成浅字，bg-slate-100 变成深底 */
-  --color-slate-50: #162130;
-  --color-slate-100: #1d2a3b;
-  --color-slate-200: #283649;
-  --color-slate-300: #3a4a60;
-  --color-slate-400: #7c8ca3;
-  --color-slate-500: #9aa8bb;
-  --color-slate-600: #b7c2d1;
-  --color-slate-700: #d0d8e3;
-  --color-slate-800: #e6ebf2;
-  --color-slate-900: #f3f6fa;
+  /* 灰阶换成不同透明度的白：玻璃后面的颜色会变，半透明的白在哪儿都读得清 */
+  --color-slate-50: rgb(255 255 255 / 0.04);
+  --color-slate-100: rgb(255 255 255 / 0.07);
+  --color-slate-200: rgb(255 255 255 / 0.11);
+  --color-slate-300: rgb(255 255 255 / 0.18);
+  --color-slate-400: rgb(244 246 251 / 0.52);
+  --color-slate-500: rgb(244 246 251 / 0.66);
+  --color-slate-600: rgb(244 246 251 / 0.78);
+  --color-slate-700: rgb(244 246 251 / 0.88);
+  --color-slate-800: rgb(244 246 251 / 0.94);
+  --color-slate-900: #f4f6fb;
   --color-slate-950: #ffffff;
 
   /* 语义色（红 = 逾期/删除，绿 = 完成/收入，习惯的自选颜色…）深浅对调，500 不变 */
@@ -156,15 +155,17 @@
   --color-violet-950: oklch(96.9% 0.016 293.756);
 }
 
-/* 可在"设置"里换的强调色（默认钴蓝写在上面）。每种颜色有浅色、深色两个色值 */
+/* 可在"设置"里换的强调色（默认琥珀金写在上面）。每种颜色有浅色、深色两个色值 */
+:root[data-accent="cobalt"] { --brand: #2452d6; }
 :root[data-accent="teal"] { --brand: #0b7d84; }
 :root[data-accent="orange"] { --brand: #c2570c; }
 :root[data-accent="rose"] { --brand: #cf3360; }
 :root[data-accent="violet"] { --brand: #6d4bd8; }
-:root[data-theme="dark"][data-accent="teal"] { --brand: #5fcfd3; }
-:root[data-theme="dark"][data-accent="orange"] { --brand: #f5a25d; }
-:root[data-theme="dark"][data-accent="rose"] { --brand: #ff8fab; }
-:root[data-theme="dark"][data-accent="violet"] { --brand: #a996ff; }
+:root[data-theme="dark"][data-accent="cobalt"] { --brand: #9bb8ff; }
+:root[data-theme="dark"][data-accent="teal"] { --brand: #6fdde0; }
+:root[data-theme="dark"][data-accent="orange"] { --brand: #ffab6b; }
+:root[data-theme="dark"][data-accent="rose"] { --brand: #ff9db5; }
+:root[data-theme="dark"][data-accent="violet"] { --brand: #b9a8ff; }
 
 @theme inline {
   /* 系统字体：Windows 上是 Segoe UI + 微软雅黑，Mac 上是苹方，不用下载 */
@@ -183,8 +184,8 @@
 
 @theme {
   /* 浅色下把两档灰字调深一点，保证在玻璃上读得清 */
-  --color-slate-400: #7b8a9f;
-  --color-slate-500: #5d6b7e;
+  --color-slate-400: #6f7e94;
+  --color-slate-500: #55637a;
 }
 
 @layer base {
@@ -196,32 +197,27 @@
     font-feature-settings: "tnum" 0;
   }
 
-  /* 背景：很淡的一片天光，左上偏蓝、右下偏暖。固定不动，侧边栏和播放条的玻璃从它上面透出一点颜色 */
+  /* 壁纸：固定在屏幕上不随页面滚动，内容像浮在天空前面 */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -2;
-    background:
-      radial-gradient(24rem 34rem at 0% 40%, var(--glow-side) 0, transparent 72%),
-      radial-gradient(46rem 16rem at 40% 104%, var(--glow-dock) 0, transparent 74%),
-      radial-gradient(64rem 44rem at 6% -12%, var(--bg-sky) 0, transparent 62%),
-      radial-gradient(52rem 38rem at 104% 108%, var(--bg-sand) 0, transparent 60%),
-      radial-gradient(38rem 28rem at 78% 8%, var(--bg-tide) 0, transparent 62%);
+    background: var(--wallpaper);
   }
-  /* 一层很淡的颗粒，避免大面积渐变出现色带，也让玻璃的缝隙更有质感 */
+  /* 一层很淡的颗粒，避免大面积渐变出现色带 */
   body::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    opacity: 0.045;
+    opacity: 0.05;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--brand) 26%, transparent);
+    background: color-mix(in oklab, var(--brand) 30%, transparent);
   }
 
   /* 键盘聚焦时的统一描边（鼠标点击不出现） */
@@ -232,7 +228,7 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklab, var(--ink) 22%, transparent) transparent;
+    scrollbar-color: color-mix(in oklab, var(--ink) 26%, transparent) transparent;
   }
 
   input[type="checkbox"],
@@ -242,34 +238,42 @@
 }
 
 /*
- * 只有外壳是玻璃：侧边栏和播放条（glass）。
- * 页面里的内容块（card）和弹窗是实心的，靠一条细边和很轻的投影和背景分开。
- * 圆角分层：外壳和弹窗 22px、内容块 16px、控件 10px、标签全圆。
+ * 玻璃分三种：
+ *   glass         外壳：侧边栏、播放条
+ *   card          页面里的内容块，和外壳同样透光，模糊略轻
+ *   glass-strong  弹窗和浮层：实得多，保证里面的表单读得清
+ * 圆角分层：外壳和弹窗 24px、内容块 20px、控件 10px、标签全圆。
  */
 @utility glass {
-  border: 1px solid color-mix(in oklab, var(--edge) 72%, transparent);
+  border: 1px solid var(--edge);
   background-color: color-mix(in oklab, var(--glass) var(--glass-fill), transparent);
-  background-image: var(--glass-sheen); /* 左上角一点反光 */
-  box-shadow: var(--glass-hi), var(--glass-rim), var(--glass-shadow);
-  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
+  backdrop-filter: blur(26px) saturate(160%);
 }
 @utility card {
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 1rem;
-  border: 1px solid var(--line);
-  background-color: var(--surface);
-  box-shadow: var(--card-shadow);
+  border: 1px solid var(--edge);
+  background-color: color-mix(in oklab, var(--glass) var(--glass-fill), transparent);
+  box-shadow: var(--glass-hi), var(--glass-shadow);
+  backdrop-filter: blur(22px) saturate(160%);
 }
-/* 可以点开的内容块：悬停时边线变深，不位移 */
+@utility glass-strong {
+  border: 1px solid var(--edge);
+  background-color: var(--dialog);
+  box-shadow: var(--glass-hi), var(--dialog-shadow);
+  backdrop-filter: blur(36px) saturate(160%);
+}
+/* 可以点开的内容块：悬停时边缘亮起来，不位移 */
 @utility card-link {
   transition: border-color 0.15s;
   &:hover {
-    border-color: color-mix(in oklab, var(--ink) 24%, transparent);
+    border-color: color-mix(in oklab, var(--ink) 42%, transparent);
   }
 }
 
 @utility input {
-  @apply w-full rounded-[10px] border border-ink/12 bg-ink/[0.025] px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand/70 focus:bg-surface focus:ring-3 focus:ring-brand/15;
+  @apply w-full rounded-[10px] border border-ink/14 bg-ink/[0.05] px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand/70 focus:bg-ink/[0.08] focus:ring-3 focus:ring-brand/20;
 }
 @utility btn {
   @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-medium transition active:scale-[.97] disabled:pointer-events-none disabled:opacity-45;
@@ -278,24 +282,24 @@
   @apply btn bg-ink text-paper hover:bg-ink/85;
 }
 @utility btn-ghost {
-  @apply btn text-slate-600 hover:bg-ink/6 hover:text-ink;
+  @apply btn text-slate-600 hover:bg-ink/8 hover:text-ink;
 }
 @utility btn-danger {
-  @apply btn text-red-600 hover:bg-red-100/70;
+  @apply btn text-red-600 hover:bg-red-500/15;
 }
 @utility label {
   @apply mb-1 block text-xs font-medium text-slate-500;
 }
-/* 筛选标签：未选是白底细边，选中是实心墨色 */
+/* 筛选标签：未选是一枚小玻璃，选中是实心 */
 @utility chip {
-  @apply cursor-pointer rounded-full bg-surface px-3 py-1 text-xs text-slate-600 ring-1 ring-line transition hover:text-ink hover:ring-ink/25;
+  @apply cursor-pointer rounded-full bg-surface px-3 py-1 text-xs text-slate-600 ring-1 ring-line transition hover:text-ink hover:ring-ink/30;
 }
 @utility chip-on {
   @apply cursor-pointer rounded-full bg-ink px-3 py-1 text-xs text-paper ring-1 ring-ink transition;
 }
 /* 小号状态标记（优先级、分类、标签） */
 @utility tag {
-  @apply rounded-md bg-ink/6 px-1.5 py-0.5 text-xs text-slate-600;
+  @apply rounded-md bg-ink/10 px-1.5 py-0.5 text-xs text-slate-600;
 }
 
 /* 弹窗出现：背景淡入，面板轻轻上浮 */

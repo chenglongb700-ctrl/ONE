@@ -25,8 +25,8 @@ export default function Modal({
   }, [onClose, top]);
 
   return (
-    <div className={`modal-backdrop fixed inset-0 ${top ? "z-[60]" : "z-50"} grid place-items-center bg-veil p-4 backdrop-blur-[3px]`} onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="modal-panel w-full max-w-lg rounded-[22px] border border-line bg-surface p-6 shadow-2xl shadow-black/20" onMouseDown={(e) => e.stopPropagation()}>
+    <div className={`modal-backdrop fixed inset-0 ${top ? "z-[60]" : "z-50"} grid place-items-center bg-veil p-4 backdrop-blur-[6px]`} onMouseDown={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="modal-panel glass-strong w-full max-w-lg rounded-[24px] p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-lg font-medium">{title}</h2>
           <button className="btn-ghost -mr-1.5 p-1.5" onClick={onClose} aria-label="关闭">
@@ -48,7 +48,7 @@ export function PageHeader({ title, sub, action }: { title: string; sub?: string
   return (
     <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-[28px] font-light leading-tight tracking-wide">{title}</h1>
+        <h1 className="text-[30px] font-light leading-tight tracking-wide">{title}</h1>
         {sub && <p className="mt-1.5 text-sm text-slate-500">{sub}</p>}
       </div>
       {action}
