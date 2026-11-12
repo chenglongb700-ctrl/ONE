@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Briefcase, CircleCheckBig, LayoutDashboard, Leaf, LogOut, Moon, PenLine, Settings as SettingsIcon, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { Bookmark, BookOpen, Briefcase, CircleCheckBig, LayoutDashboard, Leaf, LogOut, Moon, PenLine, Settings as SettingsIcon, Sun, SunMoon, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
@@ -15,6 +15,7 @@ export const MODULES: Record<string, { label: string; icon: LucideIcon }> = {
   "/habits": { label: "习惯", icon: CircleCheckBig },
   "/life": { label: "生活", icon: Leaf },
   "/journal": { label: "感悟", icon: PenLine },
+  "/favorites": { label: "收藏", icon: Bookmark },
 };
 
 // 主题按钮：点一下换到下一种
@@ -53,7 +54,7 @@ export default function Layout() {
               end={to === "/"}
               title={m.label}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-[10px] px-2.5 py-2 text-sm transition ${
+                `group flex items-center gap-3 rounded-[10px] px-2 py-2 text-sm transition md:px-2.5 ${
                   isActive ? "bg-glass/90 font-medium text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06),0_0_0_1px_var(--line)]" : "text-slate-600 hover:bg-glass/50 hover:text-ink"
                 }`
               }

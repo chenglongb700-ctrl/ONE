@@ -11,6 +11,7 @@ import Life from "./pages/Life";
 import JournalPage from "./pages/Journal";
 import Learning from "./pages/Learning";
 import Habits from "./pages/Habits";
+import Favorites from "./pages/Favorites";
 import { Toaster } from "sonner";
 import { ConfirmHost } from "./components/Confirm";
 import { MusicProvider } from "./music/MusicContext";
@@ -66,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/habits" element={<Habits />} />
             <Route path="/life" element={<Life />} />
             <Route path="/journal" element={<JournalPage />} />
+            <Route path="/favorites" element={<Favorites />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

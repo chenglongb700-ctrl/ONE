@@ -70,6 +70,24 @@ export type Stats = {
   today: string;
 };
 
+export type FavoriteKind = "link" | "text" | "image";
+export type Favorite = {
+  id: number;
+  kind: FavoriteKind;
+  title: string;
+  /** link：网址本身；text / image：出处，可以为空 */
+  url: string;
+  /** text：摘录的正文；link / image：备注 */
+  content: string;
+  /** 分组名，空字符串表示未分组 */
+  group: string;
+  tags: string;
+  pinned: boolean;
+  /** 图片的读取地址，只有 image 有 */
+  image: string | null;
+  created_at: string;
+};
+
 export type LearningKind = "book" | "course" | "skill" | "other";
 export type LearningStatus = "planned" | "active" | "paused" | "done";
 export type LearningItem = {

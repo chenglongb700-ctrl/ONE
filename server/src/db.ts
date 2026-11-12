@@ -126,6 +126,25 @@ function ensureColumn(table: string, column: string, definition: string) {
 ensureColumn("habits", "color", "TEXT NOT NULL DEFAULT 'emerald'");
 ensureColumn("users", "avatar", "TEXT"); // 头像文件名，文件在 data/avatars/
 
+// 收藏夹：kind = link（网址）/ text（摘录）/ image（图片，文件在 data/favorites/）
+db.exec(`
+CREATE TABLE IF NOT EXISTS favorites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('link','text','image')),
+  title TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  file_name TEXT,
+  mime TEXT,
+  grp TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  pinned INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id, pinned, id);
+`);
+
 // 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）
 db.exec(`
 CREATE TABLE IF NOT EXISTS tracks (

@@ -1,11 +1,12 @@
 import { Router } from "express";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, openSync, readSync, closeSync, unlink } from "node:fs";
+import { mkdirSync, unlink } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { db } from "../db.js";
 import { publicUser } from "../auth.js";
+import { sniffImage } from "../images.js";
 
 // 头像存在 server/data/avatars/，文件名用随机 UUID；数据库的 users.avatar 只记文件名
 export const AVATAR_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../data/avatars");
@@ -28,21 +29,6 @@ const upload = multer({
   },
 });
 
-/** 浏览器报的类型可以伪造，所以再看一眼文件开头的几个字节，确认真的是图片 */
-function looksLikeImage(path: string) {
-  const buf = Buffer.alloc(12);
-  const fd = openSync(path, "r");
-  try {
-    readSync(fd, buf, 0, 12, 0);
-  } finally {
-    closeSync(fd);
-  }
-  const png = buf.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-  const jpg = buf.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
-  const webp = buf.toString("latin1", 0, 4) === "RIFF" && buf.toString("latin1", 8, 12) === "WEBP";
-  return png || jpg || webp;
-}
-
 const currentFile = (userId: number) =>
   (db.prepare("SELECT avatar FROM users WHERE id = ?").get(userId) as { avatar: string | null } | undefined)?.avatar ?? null;
 
@@ -62,7 +48,9 @@ avatarRouter.post("/", (req, res, next) => {
     if (err instanceof UploadError) return void res.status(400).json({ error: err.message });
     if (err) return next(err);
     if (!req.file) return void res.status(400).json({ error: "没有收到图片" });
-    if (!looksLikeImage(req.file.path)) {
+    // 浏览器报的类型可以伪造，所以再看一眼文件内容，确认真的是图片（头像不收动图）
+    const kind = sniffImage(req.file.path);
+    if (!kind || kind === "gif") {
       removeFile(req.file.filename);
       return void res.status(400).json({ error: "这个文件不是有效的图片" });
     }

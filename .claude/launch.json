@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "one-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 }
+    { "name": "one-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 },
+    { "name": "one-codex", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "D:/ONE-codex", "run", "dev"], "port": 5174 }
   ]
 }

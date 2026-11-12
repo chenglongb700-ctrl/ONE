@@ -1,6 +1,6 @@
 # 🌱 ONE · 个人管理
 
-一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟** 五大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
+一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟 / 收藏** 六大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
 
 | 层 | 技术 |
 | --- | --- |
@@ -17,6 +17,7 @@
 - **习惯**：最近 7 天打卡表、连续天数和最长连续、近一年热力图（可看全部或单个习惯）、归档
 - **生活**：生活清单（分类、日期、勾选完成）+ 记账（按月查看、收支汇总、支出分类占比）
 - **感悟**：日记卡片，心情、标签筛选、全文搜索
+- **收藏**：收三种东西——网址（填完网址自动抓取网页标题和简介）、摘录（一段文字，可注明出处）、图片（选择文件或直接粘贴截图，单张最大 10 MB）；按分组和标签整理，支持搜索、置顶、按种类筛选
 - **外观**：干净的实心卡片，侧边栏和播放条是毛玻璃，全站只用一个强调色（钴蓝）；浅色 / 深色两套主题，默认跟随系统，侧边栏底部的按钮可以手动切换
 - **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调侧边栏和播放条的玻璃通透度、开关音乐自动播放（这些偏好存在浏览器本地，改了立刻生效）；还可以上传头像，图片自动裁成正方形，头像跟着账号走
 - **音乐**：底部播放条，切换页面不中断。可以上传音频文件（mp3 / m4a / flac / wav 等，单个最大 100 MB）或添加音频链接；列表循环、单曲循环、随机播放；LRC 歌词滚动显示，点歌词跳转；频谱可视化（Web Audio）；可设置进入网站后第一次点击时自动播放
@@ -35,7 +36,7 @@ npm run dev
 - 前端开发服务器：5173（`/api` 请求代理到后端）
 - 后端 API：3001
 - 数据库文件：`server/data/app.db`（首次启动自动创建）
-- 上传的音乐和头像：`server/data/music/`、`server/data/avatars/`（不进 git，换电脑或备份时要和数据库一起带走）
+- 上传的音乐、头像和收藏的图片：`server/data/music/`、`server/data/avatars/`、`server/data/favorites/`（不进 git，换电脑或备份时要和数据库一起带走）
 
 ### 生产部署
 
@@ -54,7 +55,9 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / learning / habits / music / avatar / stats
+  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / avatar / stats
+  images.ts       检查上传的文件是不是真的图片
+  pageMeta.ts     抓取网页标题（收藏网址时用）
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -62,7 +65,7 @@ client/src/
   index.css       设计变量（配色、卡片和玻璃、深色模式映射）和通用样式
   components/     Layout 侧边栏、Settings 设置弹窗、Modal、Brand 标志等
   music/          MusicContext 播放状态、PlayerBar 播放条、Spectrum 频谱、lrc 歌词解析
-  pages/          AuthPage / Dashboard / Work / Learning / Habits / Life / Journal
+  pages/          AuthPage / Dashboard / Work / Learning / Habits / Life / Journal / Favorites
 ```
 
 ## API
@@ -82,6 +85,11 @@ client/src/
 | POST | `/music/upload` | 上传音频文件（multipart，字段名 `file`） |
 | PUT / DELETE | `/music/:id` | 改歌名、歌手、歌词 / 删除（连同文件） |
 | GET | `/music/:id/file` | 播放上传的文件（支持 Range，可拖动进度） |
+| GET / POST | `/favorites` | 收藏列表 / 新建网址或摘录 `{kind, title, url, content, group, tags, pinned}` |
+| POST | `/favorites/image` | 新建图片收藏（multipart，字段名 `file`，其余字段同上） |
+| PUT / DELETE | `/favorites/:id` | 修改 / 删除（图片文件一并删除） |
+| GET | `/favorites/:id/image` | 读取收藏的图片 |
+| GET | `/favorites/meta?url=` | 抓取网页标题和简介（只访问公网地址） |
 | GET | `/habits/checks?from=&to=` | 一段时间内的打卡记录 |
 | POST | `/habits/:id/toggle` `{date}` | 打卡 / 取消打卡 |
 

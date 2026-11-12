@@ -4,4 +4,5 @@ server/data/*.db*
 .env
 server/data/music/
 server/data/avatars/
+server/data/favorites/
 *.tsbuildinfo
