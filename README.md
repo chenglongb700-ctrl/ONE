@@ -19,7 +19,7 @@
 - **感悟**：日记卡片，心情、标签筛选、全文搜索
 - **收藏**：收三种东西——网址（填完网址自动抓取网页标题和简介）、摘录（一段文字，可注明出处）、图片（选择文件或直接粘贴截图，单张最大 10 MB）；按分组和标签整理，支持搜索、置顶、按种类筛选
 - **外观**：「琉璃」风格——一张铺满全屏的天空壁纸，所有面板都是透光的毛玻璃，大号细体数字；两套主题：黄昏（深色，默认）和晨曦（浅色），也可以跟随系统；全站只用一个强调色（默认琥珀金）
-- **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（琥珀金 / 钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调所有玻璃面板的通透度、开关音乐自动播放（这些偏好存在浏览器本地，改了立刻生效）；还可以上传头像，图片自动裁成正方形，头像跟着账号走
+- **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（琥珀金 / 钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调所有玻璃面板的通透度、开关音乐自动播放（这些偏好存在浏览器本地，改了立刻生效）；还可以上传头像（自动裁成正方形）和自定义壁纸（大图自动缩到长边 2560 像素），这两项存在服务器上，跟着账号走
 - **音乐**：底部播放条，切换页面不中断。可以上传音频文件（mp3 / m4a / flac / wav 等，单个最大 100 MB）或添加音频链接；列表循环、单曲循环、随机播放；LRC 歌词滚动显示，点歌词跳转；频谱可视化（Web Audio）；可设置进入网站后第一次点击时自动播放
 
 ## 运行
@@ -36,7 +36,7 @@ npm run dev
 - 前端开发服务器：5173（`/api` 请求代理到后端）
 - 后端 API：3001
 - 数据库文件：`server/data/app.db`（首次启动自动创建）
-- 上传的音乐、头像和收藏的图片：`server/data/music/`、`server/data/avatars/`、`server/data/favorites/`（不进 git，换电脑或备份时要和数据库一起带走）
+- 上传的音乐、头像和收藏的图片：`server/data/music/`、`server/data/avatars/`、`server/data/favorites/`、`server/data/wallpapers/`（不进 git，换电脑或备份时要和数据库一起带走）
 
 ### 生产部署
 
@@ -55,7 +55,7 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / avatar / stats
+  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / avatar / wallpaper / stats
   images.ts       检查上传的文件是不是真的图片
   pageMeta.ts     抓取网页标题（收藏网址时用）
 client/src/
@@ -78,6 +78,8 @@ client/src/
 | GET | `/auth/me` | 当前用户 `{id, username, avatar}` |
 | POST / DELETE | `/avatar` | 上传头像（multipart，字段名 `file`，PNG / JPG / WebP，最大 2 MB）/ 移除头像 |
 | GET | `/avatar/file` | 读取自己的头像 |
+| POST / DELETE | `/wallpaper` | 上传自定义壁纸（multipart，字段名 `file`，PNG / JPG / WebP，最大 8 MB）/ 恢复默认壁纸 |
+| GET | `/wallpaper/file` | 读取自己的壁纸 |
 | GET / POST | `/tasks` `/life` `/expenses` `/journals` `/learning` `/learning-logs` `/habits` | 列表 / 新建 |
 | PUT / DELETE | `/tasks/:id` 等 | 修改（可只传部分字段）/ 删除 |
 | GET | `/stats` | 首页统计 |

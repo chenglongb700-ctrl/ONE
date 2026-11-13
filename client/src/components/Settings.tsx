@@ -1,11 +1,12 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Check, ImageUp, LogOut, Moon, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { Check, ImageUp, LogOut, Moon, RotateCcw, Sun, SunMoon, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { api, uploadFile, type User } from "../api";
 import Avatar, { squareAvatar } from "./Avatar";
 import Modal from "./Modal";
 import { useAuth } from "../context/AuthContext";
 import { useMusic } from "../music/MusicContext";
+import { shrinkWallpaper } from "../wallpaper";
 import { ACCENTS, GLASS_RANGE, setAccent, setGlass, setThemePref, useTheme, type Accent, type ThemePref } from "../theme";
 
 const THEME_OPTIONS: { key: ThemePref; label: string; icon: LucideIcon }[] = [
@@ -64,6 +65,40 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
     }
   };
 
+  // 壁纸和头像一样存在服务器上；AuthContext 发现 user.wallpaper 变了会自动铺到全站
+  const wallRef = useRef<HTMLInputElement>(null);
+  const [wallBusy, setWallBusy] = useState(false);
+
+  const pickWallpaper = async (file: File | undefined) => {
+    if (wallRef.current) wallRef.current.value = "";
+    if (!file) return;
+    setWallBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", await shrinkWallpaper(file), "wallpaper.webp");
+      updateUser(await uploadFile<User>("/wallpaper", form));
+      toast.success("壁纸已更换");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setWallBusy(false);
+    }
+  };
+
+  const removeWallpaper = async () => {
+    if (!user) return;
+    setWallBusy(true);
+    try {
+      await api.del("/wallpaper");
+      updateUser({ ...user, wallpaper: null });
+      toast.success("已恢复默认壁纸");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setWallBusy(false);
+    }
+  };
+
   const removeAvatar = async () => {
     if (!user) return;
     setBusy(true);
@@ -98,6 +133,26 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
               ))}
             </div>
           </Row>
+
+          <div className="flex items-center gap-4">
+            {/* 小预览直接用当前生效的壁纸变量：内置的天空或者上传的图都能显示 */}
+            <div className="h-14 w-24 shrink-0 rounded-[10px] ring-1 ring-line" style={{ background: "var(--wallpaper)" }} aria-hidden />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm">壁纸</div>
+              <div className="mt-0.5 text-xs text-slate-500">{user?.wallpaper ? "正在用你上传的图片。" : "正在用内置的天空，可以换成自己的图片。"}深色的图配黄昏、浅色的图配晨曦，文字最清楚。</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button className="btn bg-ink/8 px-2.5 py-1 text-xs hover:bg-ink/12" disabled={wallBusy} onClick={() => wallRef.current?.click()}>
+                  <ImageUp className="size-3.5" /> {wallBusy ? "处理中…" : user?.wallpaper ? "换一张" : "上传图片"}
+                </button>
+                {user?.wallpaper && (
+                  <button className="btn-ghost px-2.5 py-1 text-xs" disabled={wallBusy} onClick={removeWallpaper}>
+                    <RotateCcw className="size-3.5" /> 恢复默认
+                  </button>
+                )}
+              </div>
+            </div>
+            <input ref={wallRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => pickWallpaper(e.target.files?.[0])} />
+          </div>
 
           <Row label="强调色" hint="用在选中的导航、进度条和链接上">
             <div className="flex gap-2" role="radiogroup" aria-label="强调色">

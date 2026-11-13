@@ -5,4 +5,5 @@ server/data/*.db*
 server/data/music/
 server/data/avatars/
 server/data/favorites/
+server/data/wallpapers/
 *.tsbuildinfo

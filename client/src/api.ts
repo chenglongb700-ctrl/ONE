@@ -24,7 +24,7 @@ export const api = {
 };
 
 // ---------- 类型 ----------
-export type User = { id: number; username: string; avatar: string | null };
+export type User = { id: number; username: string; avatar: string | null; wallpaper: string | null };
 
 export type TaskStatus = "todo" | "doing" | "done";
 export type Priority = "low" | "medium" | "high";

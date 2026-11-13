@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, type User } from "../api";
+import { applyWallpaper } from "../wallpaper";
 
 type AuthCtx = {
   user: User | null;
@@ -24,6 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // 登录状态确定后，把这个账号的壁纸铺上；退出登录或没设置壁纸时回到内置的天空
+  useEffect(() => {
+    if (!loading) applyWallpaper(user?.wallpaper ?? null);
+  }, [loading, user?.wallpaper]);
 
   const value: AuthCtx = {
     user,

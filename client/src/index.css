@@ -30,6 +30,7 @@
   --glass-shadow: 0 24px 48px -28px rgb(40 60 100 / 0.45);
   --dialog-shadow: 0 40px 90px -30px rgb(30 45 80 / 0.55);
   --veil: rgb(22 32 46 / 0.3);
+  --wall-scrim: rgb(255 255 255 / 0.12);  /* 盖在自定义壁纸上的一层罩子，让文字更容易看清 */
 
   color-scheme: light;
 }
@@ -56,6 +57,7 @@
   --glass-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.5);
   --dialog-shadow: 0 40px 90px -30px rgb(0 0 0 / 0.7);
   --veil: rgb(6 10 24 / 0.55);
+  --wall-scrim: rgb(8 12 28 / 0.28);
 
   color-scheme: dark;
 
@@ -197,7 +199,7 @@
     font-feature-settings: "tnum" 0;
   }
 
-  /* 壁纸：固定在屏幕上不随页面滚动，内容像浮在天空前面 */
+  /* 壁纸：固定在屏幕上不随页面滚动，内容像浮在天空前面。上传了自己的图时，wallpaper.ts 会把 --wallpaper 换成那张图 */
   body::before {
     content: "";
     position: fixed;

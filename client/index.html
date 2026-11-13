@@ -18,6 +18,11 @@
           if (/^(cobalt|teal|orange|rose|violet)$/.test(look.accent)) document.documentElement.dataset.accent = look.accent;
           if (typeof look.glass === "number" && look.glass >= 15 && look.glass <= 85) document.documentElement.style.setProperty("--glass-fill", look.glass + "%");
         } catch (e) {}
+        // 自定义壁纸的地址也先用上（逻辑和 src/wallpaper.ts 一致）
+        try {
+          var wp = localStorage.getItem("one-wallpaper");
+          if (wp && wp.indexOf("/api/wallpaper/file") === 0) document.documentElement.style.setProperty("--wallpaper", 'linear-gradient(var(--wall-scrim), var(--wall-scrim)), url("' + wp + '") center / cover no-repeat');
+        } catch (e) {}
       })();
     </script>
   </head>

@@ -26,13 +26,18 @@ function issue(res: Response, userId: number) {
   res.cookie(COOKIE, token, COOKIE_OPTS);
 }
 
-/** 返回给前端的用户信息（不含密码）。avatar 是头像地址，没设置时为 null */
+/** 返回给前端的用户信息（不含密码）。avatar / wallpaper 是头像和自定义壁纸的地址，没设置时为 null */
 export function publicUser(id: number) {
-  const u = db.prepare("SELECT id, username, avatar FROM users WHERE id = ?").get(id) as
-    | { id: number; username: string; avatar: string | null }
+  const u = db.prepare("SELECT id, username, avatar, wallpaper FROM users WHERE id = ?").get(id) as
+    | { id: number; username: string; avatar: string | null; wallpaper: string | null }
     | undefined;
   if (!u) return null;
-  return { id: u.id, username: u.username, avatar: u.avatar ? `/api/avatar/file?v=${encodeURIComponent(u.avatar)}` : null };
+  return {
+    id: u.id,
+    username: u.username,
+    avatar: u.avatar ? `/api/avatar/file?v=${encodeURIComponent(u.avatar)}` : null,
+    wallpaper: u.wallpaper ? `/api/wallpaper/file?v=${encodeURIComponent(u.wallpaper)}` : null,
+  };
 }
 
 export const authRouter = Router();

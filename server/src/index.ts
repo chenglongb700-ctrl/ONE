@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
 import { authRouter, requireAuth } from "./auth.js";
 import { avatarRouter } from "./routes/avatar.js";
+import { wallpaperRouter } from "./routes/wallpaper.js";
 import { tasksRouter } from "./routes/tasks.js";
 import { lifeRouter } from "./routes/life.js";
 import { expensesRouter } from "./routes/expenses.js";
@@ -22,6 +23,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
 app.use("/api/avatar", requireAuth, avatarRouter);
+app.use("/api/wallpaper", requireAuth, wallpaperRouter);
 app.use("/api/tasks", requireAuth, tasksRouter);
 app.use("/api/life", requireAuth, lifeRouter);
 app.use("/api/expenses", requireAuth, expensesRouter);

@@ -125,6 +125,7 @@ function ensureColumn(table: string, column: string, definition: string) {
 
 ensureColumn("habits", "color", "TEXT NOT NULL DEFAULT 'emerald'");
 ensureColumn("users", "avatar", "TEXT"); // 头像文件名，文件在 data/avatars/
+ensureColumn("users", "wallpaper", "TEXT"); // 自定义壁纸文件名，文件在 data/wallpapers/
 
 // 收藏夹：kind = link（网址）/ text（摘录）/ image（图片，文件在 data/favorites/）
 db.exec(`
