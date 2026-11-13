@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { api, uploadFile, type Favorite, type FavoriteKind } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
+import { hostOf, normalizeUrl } from "../url";
 
 const KINDS: Record<FavoriteKind, { label: string; icon: LucideIcon }> = {
   link: { label: "网址", icon: Link2 },
@@ -16,20 +17,6 @@ const splitTags = (s: string) =>
     .split(/[,，\s]+/)
     .map((t) => t.trim())
     .filter(Boolean);
-
-/** 用户常常只打 example.com：没写协议就补上 https:// */
-const normalizeUrl = (s: string) => {
-  const u = s.trim();
-  return u && !/^https?:\/\//i.test(u) ? `https://${u}` : u;
-};
-
-const hostOf = (url: string) => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-};
 
 /** 网站图标：直接用对方网站的 /favicon.ico，加载不出来就显示一个地球 */
 function Favicon({ url }: { url: string }) {

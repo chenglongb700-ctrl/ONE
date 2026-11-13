@@ -16,6 +16,8 @@ import { learningRouter, learningLogsRouter } from "./routes/learning.js";
 import { habitsRouter } from "./routes/habits.js";
 import { musicRouter } from "./routes/music.js";
 import { favoritesRouter } from "./routes/favorites.js";
+import { commandsRouter } from "./routes/commands.js";
+import { sitesRouter } from "./routes/sites.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" })); // 歌词文本可能比默认的 100kb 大
@@ -33,6 +35,8 @@ app.use("/api/learning-logs", requireAuth, learningLogsRouter);
 app.use("/api/habits", requireAuth, habitsRouter);
 app.use("/api/music", requireAuth, musicRouter);
 app.use("/api/favorites", requireAuth, favoritesRouter);
+app.use("/api/commands", requireAuth, commandsRouter);
+app.use("/api/sites", requireAuth, sitesRouter);
 app.use("/api/stats", requireAuth, statsRouter);
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "接口不存在" });

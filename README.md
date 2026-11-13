@@ -1,6 +1,6 @@
 # 🌱 ONE · 个人管理
 
-一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟 / 收藏** 六大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
+一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟 / 收藏 / 网址 / 命令** 八大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
 
 | 层 | 技术 |
 | --- | --- |
@@ -18,6 +18,8 @@
 - **生活**：生活清单（分类、日期、勾选完成）+ 记账（按月查看、收支汇总、支出分类占比）
 - **感悟**：日记卡片，心情、标签筛选、全文搜索
 - **收藏**：收三种东西——网址（填完网址自动抓取网页标题和简介）、摘录（一段文字，可注明出处）、图片（选择文件或直接粘贴截图，单张最大 10 MB）；按分组和标签整理，支持搜索、置顶、按种类筛选
+- **网址**：常用网站的导航页——添加网址时服务器自动去对方网站取回 logo 和网站名（取不到就用名称的第一个字，也可以自己上传图标）；按分类分区显示，可以置顶、搜索，点一下在新标签页打开
+- **命令**：Claude Code 斜杠命令速查表——内置 83 条常用命令的中文说明（整理自官方文档），按类别分组；点命令名复制，可以搜索（按 `/` 键直达搜索框）、标为常用、写自己的备注，也可以添加自己的命令；删掉的内置命令能一键恢复
 - **外观**：「琉璃」风格——一张铺满全屏的天空壁纸，所有面板都是透光的毛玻璃，大号细体数字；两套主题：黄昏（深色，默认）和晨曦（浅色），也可以跟随系统；全站只用一个强调色（默认琥珀金）
 - **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（琥珀金 / 钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调所有玻璃面板的通透度、开关音乐自动播放（这些偏好存在浏览器本地，改了立刻生效）；还可以上传头像（自动裁成正方形）和自定义壁纸（大图自动缩到长边 2560 像素），这两项存在服务器上，跟着账号走
 - **音乐**：底部播放条，切换页面不中断。可以上传音频文件（mp3 / m4a / flac / wav 等，单个最大 100 MB）或添加音频链接；列表循环、单曲循环、随机播放；LRC 歌词滚动显示，点歌词跳转；频谱可视化（Web Audio）；可设置进入网站后第一次点击时自动播放
@@ -36,7 +38,7 @@ npm run dev
 - 前端开发服务器：5173（`/api` 请求代理到后端）
 - 后端 API：3001
 - 数据库文件：`server/data/app.db`（首次启动自动创建）
-- 上传的音乐、头像和收藏的图片：`server/data/music/`、`server/data/avatars/`、`server/data/favorites/`、`server/data/wallpapers/`（不进 git，换电脑或备份时要和数据库一起带走）
+- 上传的音乐、头像和收藏的图片：`server/data/music/`、`server/data/avatars/`、`server/data/favorites/`、`server/data/wallpapers/`、`server/data/site-icons/`（不进 git，换电脑或备份时要和数据库一起带走）
 
 ### 生产部署
 
@@ -55,9 +57,11 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / avatar / wallpaper / stats
+  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / sites / commands / avatar / wallpaper / stats
   images.ts       检查上传的文件是不是真的图片
   pageMeta.ts     抓取网页标题（收藏网址时用）
+  commandSeed.ts  内置的斜杠命令清单（每个账号第一次打开「命令」时抄一份）
+  siteIcon.ts     取回网站的 logo 和名称（添加网址时用）
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -92,6 +96,13 @@ client/src/
 | PUT / DELETE | `/favorites/:id` | 修改 / 删除（图片文件一并删除） |
 | GET | `/favorites/:id/image` | 读取收藏的图片 |
 | GET | `/favorites/meta?url=` | 抓取网页标题和简介（只访问公网地址） |
+| GET / POST | `/commands` | 命令列表（第一次读取时自动填入内置命令）/ 新建 `{name, args, aliases, category, description, example, note, pinned}` |
+| PUT / DELETE | `/commands/:id` | 修改（可只传部分字段）/ 删除 |
+| POST | `/commands/restore` | 补回被删掉的内置命令，返回 `{added}` |
+| GET / POST | `/sites` | 网址列表 / 添加 `{url, title, category, pinned}`（会去网站取 logo 和名称，最多约十秒） |
+| PUT / DELETE | `/sites/:id` | 修改（可只传部分字段；换了网址会重新取 logo）/ 删除 |
+| POST | `/sites/:id/icon/refresh` | 重新去网站取一次 logo |
+| POST / GET | `/sites/:id/icon` | 上传自己的图标（multipart，字段名 `file`，最大 1 MB）/ 读取图标 |
 | GET | `/habits/checks?from=&to=` | 一段时间内的打卡记录 |
 | POST | `/habits/:id/toggle` `{date}` | 打卡 / 取消打卡 |
 

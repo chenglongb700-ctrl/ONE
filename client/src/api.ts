@@ -70,7 +70,37 @@ export type Stats = {
   today: string;
 };
 
-export type FavoriteKind = "link" | "text" | "image";
+/** 「网址」里的一个常用网站 */
+export type Site = {
+  id: number;
+  title: string;
+  url: string;
+  /** 分类名，空字符串表示未分类 */
+  category: string;
+  pinned: boolean;
+  /** logo 的读取地址；没取到图标时为 null，界面上用名称的第一个字代替 */
+  icon: string | null;
+};
+
+/** 一条斜杠命令。内置的来自服务器上的清单，也可以自己添加 */
+export type Command = {
+  id: number;
+  /** 命令本身，带开头的斜杠，例如 /compact */
+  name: string;
+  /** 参数写法，例如 [可选] <必填> */
+  args: string;
+  aliases: string;
+  category: string;
+  description: string;
+  example: string;
+  /** 自己写的备注 */
+  note: string;
+  /** 常用 */
+  pinned: boolean;
+  builtin: boolean;
+};
+
+export type FavoriteKind ="link" | "text" | "image";
 export type Favorite = {
   id: number;
   kind: FavoriteKind;

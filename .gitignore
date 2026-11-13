@@ -6,4 +6,5 @@ server/data/music/
 server/data/avatars/
 server/data/favorites/
 server/data/wallpapers/
+server/data/site-icons/
 *.tsbuildinfo

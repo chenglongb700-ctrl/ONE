@@ -12,6 +12,8 @@ import JournalPage from "./pages/Journal";
 import Learning from "./pages/Learning";
 import Habits from "./pages/Habits";
 import Favorites from "./pages/Favorites";
+import Commands from "./pages/Commands";
+import Sites from "./pages/Sites";
 import { Toaster } from "sonner";
 import { ConfirmHost } from "./components/Confirm";
 import { MusicProvider } from "./music/MusicContext";
@@ -68,6 +70,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/life" element={<Life />} />
             <Route path="/journal" element={<JournalPage />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/sites" element={<Sites />} />
+            <Route path="/commands" element={<Commands />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

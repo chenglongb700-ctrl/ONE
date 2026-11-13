@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Bookmark, BookOpen, Briefcase, CircleCheckBig, LayoutDashboard, Leaf, LogOut, Moon, PenLine, Settings as SettingsIcon, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { Bookmark, BookOpen, Briefcase, CircleCheckBig, Compass, LayoutDashboard, Leaf, LogOut, Moon, PenLine, Settings as SettingsIcon, SquareSlash, Sun, SunMoon, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
@@ -16,6 +16,8 @@ export const MODULES: Record<string, { label: string; icon: LucideIcon }> = {
   "/life": { label: "生活", icon: Leaf },
   "/journal": { label: "感悟", icon: PenLine },
   "/favorites": { label: "收藏", icon: Bookmark },
+  "/sites": { label: "网址", icon: Compass },
+  "/commands": { label: "命令", icon: SquareSlash },
 };
 
 // 主题按钮：点一下换到下一种
@@ -33,6 +35,12 @@ export default function Layout() {
   const T = THEMES[pref];
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // 手机上导航图标一排放不下、可以左右滑：换页面后把当前这一项滑到看得见的地方
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [location.pathname]);
+
   const onLogout = async () => {
     await logout();
     navigate("/login");
@@ -40,13 +48,14 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="glass sticky top-0 z-40 flex shrink-0 items-center justify-between border-x-0 border-t-0 px-3 py-2 md:top-3 md:m-3 md:h-[calc(100vh-1.5rem)] md:w-56 md:flex-col md:items-stretch md:justify-start md:rounded-[24px] md:border md:px-3 md:py-5">
+      <aside className="glass sticky top-0 z-40 flex shrink-0 items-center justify-between border-x-0 border-t-0 px-2 py-2 sm:px-3 md:top-3 md:m-3 md:h-[calc(100vh-1.5rem)] md:w-56 md:flex-col md:items-stretch md:justify-start md:rounded-[24px] md:border md:px-3 md:py-5">
         <div className="flex items-center gap-2.5 px-1 md:mb-7 md:px-2.5">
           <Mark />
           <Wordmark className="hidden text-[17px] sm:inline" />
         </div>
 
-        <nav className="flex gap-0.5 md:flex-col md:gap-1" aria-label="主导航">
+        {/* 手机上图标一排放不下时可以左右滑 */}
+        <nav ref={navRef} className="flex min-w-0 gap-0.5 overflow-x-auto [scrollbar-width:none] md:flex-col md:gap-1 md:overflow-visible" aria-label="主导航">
           {Object.entries(MODULES).map(([to, m]) => (
             <NavLink
               key={to}
@@ -81,7 +90,8 @@ export default function Layout() {
           <button className="btn-ghost p-2" onClick={() => setSettingsOpen(true)} title="设置" aria-label="设置">
             <SettingsIcon className="size-4" />
           </button>
-          <button className="btn-ghost p-2" onClick={onLogout} title="退出登录" aria-label="退出登录">
+          {/* 手机上位置紧，退出登录在设置里也有 */}
+          <button className="btn-ghost hidden p-2 md:inline-flex" onClick={onLogout} title="退出登录" aria-label="退出登录">
             <LogOut className="size-4" />
           </button>
         </div>

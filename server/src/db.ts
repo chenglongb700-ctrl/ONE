@@ -146,6 +146,41 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id, pinned, id);
 `);
 
+// 命令：Claude Code 斜杠命令速查表。builtin = 1 表示是从内置清单（commandSeed.ts）抄来的
+db.exec(`
+CREATE TABLE IF NOT EXISTS commands (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  args TEXT NOT NULL DEFAULT '',
+  aliases TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  example TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',     -- 自己写的备注
+  pinned INTEGER NOT NULL DEFAULT 0, -- 常用
+  builtin INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_commands_user ON commands(user_id, id);
+`);
+ensureColumn("users", "commands_seeded", "INTEGER NOT NULL DEFAULT 0"); // 这个账号是否已经抄过一次内置命令清单
+
+// 网址：常用网站的导航页。icon 是取回来的 logo 文件名，文件在 data/site-icons/
+db.exec(`
+CREATE TABLE IF NOT EXISTS sites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT '',
+  pinned INTEGER NOT NULL DEFAULT 0,
+  icon TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_sites_user ON sites(user_id, pinned, id);
+`);
+
 // 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）
 db.exec(`
 CREATE TABLE IF NOT EXISTS tracks (
