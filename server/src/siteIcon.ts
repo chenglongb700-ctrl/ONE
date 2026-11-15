@@ -32,7 +32,7 @@ export const removeIcon = (name: string | null) => {
 };
 
 /** 取 HTML 标签里某个属性的值，引号用单的、双的、不用都认 */
-function attr(tag: string, name: string): string {
+export function attr(tag: string, name: string): string {
   const m = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
   return clean(m?.[1] ?? m?.[2] ?? m?.[3], 2000);
 }

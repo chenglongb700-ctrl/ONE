@@ -235,6 +235,41 @@ CREATE TABLE IF NOT EXISTS countdowns (
 CREATE INDEX IF NOT EXISTS idx_countdowns_user ON countdowns(user_id, date);
 `);
 
+// 资讯：feeds 是订阅的新闻来源（RSS 地址），articles 是从这些来源读回来的文章。
+// UNIQUE (feed_id, guid) 保证同一篇文章不会存两遍；删掉来源时它的文章跟着删（ON DELETE CASCADE）。
+// 时间都存成 ISO 格式的 UTC 时间（2026-11-15T03:00:00.000Z），这种写法按字符串排序就是按时间排序。
+db.exec(`
+CREATE TABLE IF NOT EXISTS feeds (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,                  -- RSS / Atom 地址
+  site_url TEXT NOT NULL DEFAULT '',  -- 网站首页
+  topic TEXT NOT NULL DEFAULT '',     -- 主题，空字符串 = 未分类
+  enabled INTEGER NOT NULL DEFAULT 1,
+  builtin INTEGER NOT NULL DEFAULT 0, -- 是不是从内置清单（feedSeed.ts）来的
+  last_fetched_at TEXT,               -- 上次去读的时间，NULL = 还没读过
+  last_error TEXT NOT NULL DEFAULT '',-- 上次读取失败的原因，成功则为空
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_feeds_user ON feeds(user_id);
+CREATE TABLE IF NOT EXISTS articles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  feed_id INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+  guid TEXT NOT NULL,                 -- 来源给每篇文章的唯一标识
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  summary TEXT NOT NULL DEFAULT '',   -- 纯文字摘要（已经去掉 HTML 标签）
+  published_at TEXT NOT NULL,
+  read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  UNIQUE (feed_id, guid)
+);
+CREATE INDEX IF NOT EXISTS idx_articles_user ON articles(user_id, published_at DESC);
+`);
+ensureColumn("users", "feeds_seeded", "INTEGER NOT NULL DEFAULT 0"); // 这个账号是否已经加过一次内置的新闻来源
+
 // 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）
 db.exec(`
 CREATE TABLE IF NOT EXISTS tracks (

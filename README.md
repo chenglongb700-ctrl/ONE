@@ -1,6 +1,6 @@
 # 🌱 ONE · 个人管理
 
-一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟 / 收藏 / 网址 / 命令** 八大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
+一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟 / 资讯 / 收藏 / 网址 / 命令** 九大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
 
 | 层 | 技术 |
 | --- | --- |
@@ -17,6 +17,7 @@
 - **习惯**：最近 7 天打卡表、连续天数和最长连续、近一年热力图（可看全部或单个习惯）、归档
 - **生活**：生活清单（分类、日期、勾选完成）+ 记账（按月查看、收支汇总、支出分类占比）
 - **感悟**：日记卡片，心情、标签筛选、全文搜索
+- **资讯**：订阅新闻来源（RSS），把最新文章读回来按主题看——内置 13 个中英文来源（AI：量子位、OpenAI、Google AI、Hugging Face、TechCrunch、The Verge、Hacker News；科技：IT之家、爱范儿、少数派、Solidot；开发：InfoQ、开源中国）；按天分组，支持主题筛选、只看未读、搜索；打开页面时自动更新超过半小时没读过的来源；可以自己加来源（填 RSS 地址或网站地址）、停用、删除。不接 AI；每日简报和问答的位置留好了，还没做
 - **收藏**：收三种东西——摘录（一段文字，可注明出处）、图片（选择文件或直接粘贴截图，单张最大 10 MB）、视频（贴 B 站、YouTube 等视频页面的链接，自动取标题和封面，B 站和 YouTube 可以直接在页面里播放；或者上传 MP4 / WebM / MOV 文件，单个最大 500 MB）；按分组和标签整理，支持搜索、置顶、按种类筛选（网址不放这里，统一放在「网址」）
 - **网址**：常用网站的导航页——添加网址时服务器自动去对方网站取回 logo 和网站名（取不到就用名称的第一个字，也可以自己上传图标）；按分类分区显示，可以置顶、搜索，点一下在新标签页打开
 - **命令**：Claude Code 斜杠命令速查表——内置 83 条常用命令的中文说明（整理自官方文档），按类别分组；点命令名复制，可以搜索（按 `/` 键直达搜索框）、标为常用、写自己的备注，也可以添加自己的命令；删掉的内置命令能一键恢复
@@ -59,12 +60,14 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / sites / commands / countdowns / drop / avatar / wallpaper / stats
+  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / sites / commands / countdowns / drop / news / avatar / wallpaper / stats
   images.ts       检查上传的文件是不是真的图片
   pageMeta.ts     安全地访问公网网页（只读开头一段，不访问内网地址）
   commandSeed.ts  内置的斜杠命令清单（每个账号第一次打开「命令」时抄一份）
   siteIcon.ts     取回网站的 logo 和名称（添加网址时用）
   platforms.ts    平台识别表：域名 → 平台名、是不是视频、默认分类（想多认一个平台在这里加一行）
+  feeds.ts        读取并解析一个 RSS / Atom 订阅地址（用 fast-xml-parser），以及从网站地址找出它的订阅地址
+  feedSeed.ts     内置的新闻来源清单（每个账号第一次打开「资讯」时抄一份）
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -109,6 +112,13 @@ client/src/
 | GET / POST | `/countdowns` | 倒计时列表 / 新建 `{title, date, time, pinned}`（`time` 可为空；`pinned` 同时只有一个） |
 | PUT / DELETE | `/countdowns/:id` | 修改 / 删除 |
 | POST | `/drop` | 拖进来自动归类：`{text}`（网址或文字）或 `{imageUrl, pageUrl}`（网页上的图片），返回 `{where, kind, title, platform, category}` |
+| GET | `/news?topic=&unread=1&q=&offset=` | 文章列表（每次 40 条），返回 `{items, hasMore, unread}` |
+| POST | `/news/refresh` | 重新读取来源：默认只读超过半小时没读过的，`{force: true}` 全部重读；返回 `{checked, added, failed}` |
+| PUT | `/news/:id` | 标为已读 / 未读 `{read}` |
+| POST | `/news/read-all` | 全部标为已读，可以只标某个主题 `{topic}` |
+| GET / POST | `/news/feeds` | 来源列表 / 添加 `{url, title, topic}`（RSS 地址或网站地址，会当场读一次） |
+| PUT / DELETE | `/news/feeds/:id` | 改名、换主题、停用 `{title, topic, enabled}` / 删除（文章一并删除） |
+| POST | `/news/feeds/restore` | 补回被删掉的内置来源 |
 | GET | `/habits/checks?from=&to=` | 一段时间内的打卡记录 |
 | POST | `/habits/:id/toggle` `{date}` | 打卡 / 取消打卡 |
 

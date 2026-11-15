@@ -70,6 +70,41 @@ export type Stats = {
   today: string;
 };
 
+/** 「资讯」里的一篇文章 */
+export type Article = {
+  id: number;
+  title: string;
+  url: string;
+  /** 纯文字摘要，可能为空 */
+  summary: string;
+  /** 发布时间，ISO 格式（UTC） */
+  publishedAt: string;
+  read: boolean;
+  feedId: number;
+  /** 来源的名字 */
+  feed: string;
+  /** 来源所属的主题，空字符串表示未分类 */
+  topic: string;
+};
+
+/** 「资讯」订阅的一个新闻来源 */
+export type Feed = {
+  id: number;
+  title: string;
+  /** RSS 订阅地址 */
+  url: string;
+  siteUrl: string;
+  topic: string;
+  enabled: boolean;
+  builtin: boolean;
+  /** 上次去读的时间；null 表示还没读过 */
+  lastFetchedAt: string | null;
+  /** 上次读取失败的原因；成功为空字符串 */
+  lastError: string;
+  /** 已经读回来多少篇文章 */
+  articles: number;
+};
+
 /** 右上角的倒计时 */
 export type Countdown = {
   id: number;
