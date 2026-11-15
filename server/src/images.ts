@@ -33,3 +33,17 @@ export function sniffImage(path: string): ImageKind | null {
   const kind = sniffBytes(buf);
   return kind === "ico" ? null : kind;
 }
+
+/** 检查硬盘上的一个文件是不是视频：MP4 / MOV（第 5 到 8 个字节是 ftyp）或者 WebM（1A 45 DF A3 开头） */
+export function sniffVideo(path: string): "mp4" | "webm" | null {
+  const buf = Buffer.alloc(12);
+  const fd = openSync(path, "r");
+  try {
+    readSync(fd, buf, 0, 12, 0);
+  } finally {
+    closeSync(fd);
+  }
+  if (buf.toString("latin1", 4, 8) === "ftyp") return "mp4";
+  if (buf.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))) return "webm";
+  return null;
+}

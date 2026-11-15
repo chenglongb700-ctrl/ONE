@@ -2,10 +2,9 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
 /**
- * 给一个网址，抓回网页的标题和简介（收藏网址时自动填标题用）。
- * 抓不到就返回空字符串，不抛错：标题填不上只是小事，用户可以自己写。
+ * 让服务器去访问一个网址、读回网页内容的几个工具（「网址」页面取网站名和 logo 时用，见 siteIcon.ts）。
+ * 抓不到就返回 null，不抛错：名称和图标拿不到只是小事，用户可以自己填。
  */
-export type PageMeta = { title: string; description: string };
 
 const MAX_BYTES = 300 * 1024; // 标题都在网页开头，读前 300 KB 足够
 const TIMEOUT_MS = 6000;
@@ -121,11 +120,19 @@ export async function fetchHtml(rawUrl: string, timeoutMs = TIMEOUT_MS): Promise
 
 export const pageTitle = (html: string) => clean(metaContent(html, "og:title") ?? /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1], 200);
 
-export async function fetchPageMeta(rawUrl: string): Promise<PageMeta> {
-  const page = await fetchHtml(rawUrl);
-  if (!page) return { title: "", description: "" };
-  return {
-    title: pageTitle(page.html),
-    description: clean(metaContent(page.html, "description") ?? metaContent(page.html, "og:description"), 300),
-  };
+/** 下载一个不大的文件（图标、封面图）。超过 maxBytes、下载失败、地址不允许访问，都返回 null */
+export async function fetchBytes(url: string, accept: string, maxBytes: number, timeoutMs = TIMEOUT_MS): Promise<Uint8Array | null> {
+  try {
+    const got = await safeFetch(url, accept, timeoutMs);
+    if (!got) return null;
+    if (!got.res.ok) {
+      got.res.body?.cancel().catch(() => {});
+      return null;
+    }
+    // 多读一个字节：读满了说明文件超过上限，不要
+    const bytes = await readHead(got.res, maxBytes + 1);
+    return bytes.byteLength > maxBytes ? null : bytes;
+  } catch {
+    return null;
+  }
 }

@@ -3,7 +3,7 @@ import { mkdirSync, unlink, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sniffBytes } from "./images.js";
-import { clean, fetchHtml, metaContent, pageTitle, readHead, safeFetch } from "./pageMeta.js";
+import { clean, fetchBytes, fetchHtml, metaContent, pageTitle } from "./pageMeta.js";
 
 /**
  * 「网址」的 logo：添加网址时，服务器去那个网站把图标取回来，存在 server/data/site-icons/。
@@ -83,22 +83,6 @@ function siteName(html: string, url: URL): string {
   return labels[labels.length - 1 - tldParts] ?? short.slice(0, 60);
 }
 
-async function download(url: string, timeoutMs: number): Promise<Uint8Array | null> {
-  try {
-    const got = await safeFetch(url, "image/*,*/*;q=0.5", timeoutMs);
-    if (!got) return null;
-    if (!got.res.ok) {
-      got.res.body?.cancel().catch(() => {});
-      return null;
-    }
-    // 多读一个字节：读满了说明文件超过上限，不要
-    const bytes = await readHead(got.res, ICON_MAX_BYTES + 1);
-    return bytes.byteLength > ICON_MAX_BYTES ? null : bytes;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * 去一个网站取回它的标题和图标。哪样拿不到，哪样就是空的（title: ""，icon: null），不抛错。
  * 图标已经存到硬盘上，返回的是文件名；调用的人如果最后没用上，要自己 removeIcon。
@@ -114,7 +98,7 @@ export async function fetchSiteInfo(rawUrl: string): Promise<{ title: string; ic
 
   for (const url of candidates) {
     if (left() < 500) break;
-    const bytes = await download(url, Math.min(left(), page ? 5000 : 3000));
+    const bytes = await fetchBytes(url, "image/*,*/*;q=0.5", ICON_MAX_BYTES, Math.min(left(), page ? 5000 : 3000));
     const icon = bytes && saveIcon(bytes);
     if (icon) return { title, icon };
   }

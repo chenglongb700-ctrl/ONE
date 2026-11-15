@@ -70,6 +70,18 @@ export type Stats = {
   today: string;
 };
 
+/** 右上角的倒计时 */
+export type Countdown = {
+  id: number;
+  title: string;
+  /** 目标日期 YYYY-MM-DD */
+  date: string;
+  /** 目标时刻 HH:MM；空字符串表示只精确到天 */
+  time: string;
+  /** 固定显示在右上角（最多一个） */
+  pinned: boolean;
+};
+
 /** 「网址」里的一个常用网站 */
 export type Site = {
   id: number;
@@ -100,14 +112,15 @@ export type Command = {
   builtin: boolean;
 };
 
-export type FavoriteKind ="link" | "text" | "image";
+/** 收藏的种类。普通网址不在这里，统一放在「网址」页面（见 Site） */
+export type FavoriteKind = "text" | "image" | "video";
 export type Favorite = {
   id: number;
   kind: FavoriteKind;
   title: string;
-  /** link：网址本身；text / image：出处，可以为空 */
+  /** 出处的网址，可以为空；视频链接的话，这就是视频所在的网页 */
   url: string;
-  /** text：摘录的正文；link / image：备注 */
+  /** text：摘录的正文；image / video：备注 */
   content: string;
   /** 分组名，空字符串表示未分组 */
   group: string;
@@ -115,6 +128,10 @@ export type Favorite = {
   pinned: boolean;
   /** 图片的读取地址，只有 image 有 */
   image: string | null;
+  /** 上传的视频文件的读取地址；视频链接没有文件，为 null */
+  video: string | null;
+  /** 视频链接的封面图地址，没取到时为 null */
+  cover: string | null;
   created_at: string;
 };
 

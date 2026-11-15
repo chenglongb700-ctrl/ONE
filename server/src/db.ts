@@ -127,24 +127,25 @@ ensureColumn("habits", "color", "TEXT NOT NULL DEFAULT 'emerald'");
 ensureColumn("users", "avatar", "TEXT"); // 头像文件名，文件在 data/avatars/
 ensureColumn("users", "wallpaper", "TEXT"); // 自定义壁纸文件名，文件在 data/wallpapers/
 
-// 收藏夹：kind = link（网址）/ text（摘录）/ image（图片，文件在 data/favorites/）
-db.exec(`
-CREATE TABLE IF NOT EXISTS favorites (
+// 收藏夹：kind = text（摘录）/ image（图片）/ video（视频：上传的文件，或者一个视频链接）
+// file_name 是图片或视频文件，cover 是视频链接的封面图，文件都在 data/favorites/
+const FAVORITES_TABLE = (name: string) => `
+CREATE TABLE IF NOT EXISTS ${name} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  kind TEXT NOT NULL CHECK (kind IN ('link','text','image')),
+  kind TEXT NOT NULL CHECK (kind IN ('text','image','video')),
   title TEXT NOT NULL DEFAULT '',
   url TEXT NOT NULL DEFAULT '',
   content TEXT NOT NULL DEFAULT '',
   file_name TEXT,
   mime TEXT,
+  cover TEXT,
   grp TEXT NOT NULL DEFAULT '',
   tags TEXT NOT NULL DEFAULT '',
   pinned INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id, pinned, id);
-`);
+);`;
+db.exec(FAVORITES_TABLE("favorites"));
 
 // 命令：Claude Code 斜杠命令速查表。builtin = 1 表示是从内置清单（commandSeed.ts）抄来的
 db.exec(`
@@ -179,6 +180,59 @@ CREATE TABLE IF NOT EXISTS sites (
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_sites_user ON sites(user_id, pinned, id);
+`);
+
+// 迁移：收藏夹以前也能收网址（kind = 'link'），现在网址统一放在 sites 里。
+// 把旧的网址收藏搬过来（分组变成分类；已经有同一个网址的不重复搬），然后从收藏夹里删掉。
+// logo 留空，在「网址」页面的编辑里点"重新获取图标"就有了。备注和标签在 sites 里没有对应的地方，不保留。
+{
+  const moved = db
+    .prepare(
+      `INSERT INTO sites (user_id, title, url, category, pinned)
+       SELECT f.user_id, f.title, f.url, f.grp, f.pinned FROM favorites f
+       WHERE f.kind = 'link' AND NOT EXISTS (SELECT 1 FROM sites s WHERE s.user_id = f.user_id AND s.url = f.url)`,
+    )
+    .run().changes;
+  const removed = db.prepare("DELETE FROM favorites WHERE kind = 'link'").run().changes;
+  if (removed) console.log(`[db] migrated: ${removed} link favourites -> sites (${moved} added)`);
+}
+
+// 迁移：老数据库里 favorites 表的 kind 只允许 link / text / image，不认识后来加的 video。
+// SQLite 改不了已有的约束，只能照新结构建一张表，把数据倒过去，再换掉旧表（放在一个事务里，失败就原样退回）。
+{
+  const old = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'favorites'").get() as { sql: string };
+  if (!old.sql.includes("'video'")) {
+    db.exec("BEGIN");
+    try {
+      db.exec(FAVORITES_TABLE("favorites_new"));
+      db.exec(`
+        INSERT INTO favorites_new (id, user_id, kind, title, url, content, file_name, mime, grp, tags, pinned, created_at)
+          SELECT id, user_id, kind, title, url, content, file_name, mime, grp, tags, pinned, created_at FROM favorites;
+        DROP TABLE favorites;
+        ALTER TABLE favorites_new RENAME TO favorites;
+      `);
+      db.exec("COMMIT");
+      console.log("[db] migrated: favorites table rebuilt (kind now allows video)");
+    } catch (err) {
+      db.exec("ROLLBACK");
+      throw err;
+    }
+  }
+}
+db.exec("CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id, pinned, id)");
+
+// 倒计时：date 是 YYYY-MM-DD，time 是 HH:MM 或空字符串（只精确到天）；pinned = 固定显示在右上角
+db.exec(`
+CREATE TABLE IF NOT EXISTS countdowns (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  date TEXT NOT NULL,
+  time TEXT NOT NULL DEFAULT '',
+  pinned INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_countdowns_user ON countdowns(user_id, date);
 `);
 
 // 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）

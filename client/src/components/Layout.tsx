@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
 import Avatar from "./Avatar";
+import CountdownCorner from "./Countdown";
 import { Mark, Wordmark } from "./Brand";
 import Settings from "./Settings";
 
@@ -97,9 +98,15 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main key={location.pathname} className="page-enter mx-auto w-full min-w-0 max-w-6xl flex-1 p-4 pb-24 md:px-8 md:pb-28 md:pt-9">
-        <Outlet />
-      </main>
+      <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col">
+        {/* 右上角的倒计时放在换页时会重建的 main 外面：换页面不闪、不重新读数据 */}
+        <div className="px-4 pt-3 md:px-8 md:pt-4">
+          <CountdownCorner />
+        </div>
+        <main key={location.pathname} className="page-enter w-full min-w-0 flex-1 p-4 pb-24 pt-2 md:px-8 md:pb-28 md:pt-2">
+          <Outlet />
+        </main>
+      </div>
       <PlayerBar />
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} onLogout={onLogout} />}
     </div>

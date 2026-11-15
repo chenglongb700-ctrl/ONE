@@ -1,16 +1,40 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent } from "react";
-import { Copy, ExternalLink, Folder, Globe, ImagePlus, Link2, LoaderCircle, Pencil, Pin, Plus, Quote, Search, Trash2, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Copy, ExternalLink, Film, Folder, ImagePlus, Pencil, Pin, Play, Plus, Quote, Search, Trash2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { api, uploadFile, type Favorite, type FavoriteKind } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
+import { useMusic } from "../music/MusicContext";
 import { hostOf, normalizeUrl } from "../url";
 
 const KINDS: Record<FavoriteKind, { label: string; icon: LucideIcon }> = {
-  link: { label: "网址", icon: Link2 },
   text: { label: "摘录", icon: Quote },
   image: { label: "图片", icon: ImagePlus },
+  video: { label: "视频", icon: Film },
 };
+
+const VIDEO_MAX_MB = 500; // 和服务器上的上限一致
+
+/**
+ * 视频链接能不能直接在页面里播放：认得出的视频网站（B 站、YouTube）返回它的嵌入播放器地址，
+ * 认不出的返回 null，只能跳去原网页看。
+ */
+function embedOf(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^(www|m)\./, "");
+    if (host === "bilibili.com") {
+      const bv = /\/video\/(BV[0-9A-Za-z]+)/.exec(u.pathname)?.[1];
+      const p = u.searchParams.get("p"); // 分 P 视频的第几集
+      return bv ? `https://player.bilibili.com/player.html?bvid=${bv}${p && /^\d+$/.test(p) ? `&p=${p}` : ""}&autoplay=0` : null;
+    }
+    const id = host === "youtu.be" ? u.pathname.slice(1) : host === "youtube.com" ? (u.searchParams.get("v") ?? /^\/(?:shorts|embed|live)\/([\w-]+)/.exec(u.pathname)?.[1]) : null;
+    return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+  } catch {
+    return null;
+  }
+}
 
 const splitTags = (s: string) =>
   s
@@ -18,24 +42,9 @@ const splitTags = (s: string) =>
     .map((t) => t.trim())
     .filter(Boolean);
 
-/** 网站图标：直接用对方网站的 /favicon.ico，加载不出来就显示一个地球 */
-function Favicon({ url }: { url: string }) {
-  const [failed, setFailed] = useState(false);
-  let src = "";
-  try {
-    src = new URL(url).origin + "/favicon.ico";
-  } catch {
-    /* 网址不合法就用默认图标 */
-  }
-  return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-ink/6 text-slate-500">
-      {src && !failed ? <img src={src} alt="" className="size-5 rounded-sm" loading="lazy" onError={() => setFailed(true)} /> : <Globe className="size-[18px]" />}
-    </span>
-  );
-}
-
 type Draft = { kind: FavoriteKind; title: string; url: string; content: string; group: string; tags: string; pinned: boolean };
-type Editing = { id?: number; draft: Draft; file?: File; preview?: string };
+/** file / preview：新建图片或视频时选好的文件和它的本地预览；linkVideo：正在编辑的是一条视频链接（链接不能改） */
+type Editing = { id?: number; draft: Draft; file?: File; preview?: string; linkVideo?: boolean };
 const emptyDraft = (kind: FavoriteKind, group: string): Draft => ({ kind, title: "", url: "", content: "", group, tags: "", pinned: false });
 
 const UNGROUPED = "\u0000"; // 筛选"未分组"用的内部标记，不会和真实的分组名重复
@@ -50,10 +59,11 @@ export default function Favorites() {
   const [viewing, setViewing] = useState<Favorite | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [fetching, setFetching] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+  const music = useMusic();
 
-  const load = () => api.get<Favorite[]>("/favorites").then(setList);
+  const load =() => api.get<Favorite[]>("/favorites").then(setList);
   useEffect(() => {
     load();
   }, []);
@@ -78,7 +88,7 @@ export default function Favorites() {
     setEditing(null);
   };
 
-  const openNew = (k: FavoriteKind = "link") => {
+  const openNew = (k: FavoriteKind = "text") => {
     setError("");
     // 正在看某个分组时，新收藏默认放进这个分组
     setEditing({ draft: emptyDraft(k, group && group !== UNGROUPED ? group : "") });
@@ -87,7 +97,27 @@ export default function Favorites() {
   const openEdit = (f: Favorite) => {
     setError("");
     setViewing(null);
-    setEditing({ id: f.id, draft: { kind: f.kind, title: f.title, url: f.url, content: f.content, group: f.group, tags: f.tags, pinned: f.pinned } });
+    setEditing({
+      id: f.id,
+      draft: { kind: f.kind, title: f.title, url: f.url, content: f.content, group: f.group, tags: f.tags, pinned: f.pinned },
+      linkVideo: f.kind === "video" && !f.video,
+    });
+  };
+
+  // 打开一条收藏看大图 / 全文 / 播放视频。放视频前先把背景音乐停掉，免得两个声音叠在一起
+  const view = (f: Favorite) => {
+    if (f.kind === "video") music.pause();
+    setViewing(f);
+  };
+
+  // 新建时换种类：已经选好的文件不能带到另一种里去
+  const switchKind = (k: FavoriteKind) => {
+    setError("");
+    setEditing((e) => {
+      if (!e) return e;
+      if (e.preview) URL.revokeObjectURL(e.preview);
+      return { ...e, draft: { ...e.draft, kind: k }, file: undefined, preview: undefined };
+    });
   };
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setEditing((e) => (e ? { ...e, draft: { ...e.draft, [k]: v } } : e));
@@ -95,6 +125,19 @@ export default function Favorites() {
   const pickImage = (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) return setError("请选择一张图片");
+    setError("");
+    setEditing((e) => {
+      if (!e) return e;
+      if (e.preview) URL.revokeObjectURL(e.preview);
+      return { ...e, file, preview: URL.createObjectURL(file) };
+    });
+  };
+
+  const pickVideo = (file: File | undefined) => {
+    if (videoRef.current) videoRef.current.value = ""; // 清空，这样下次选同一个文件也会触发
+    if (!file) return;
+    if (!/^video\/(mp4|webm|quicktime)$/.test(file.type)) return setError("只支持 MP4、WebM、MOV 视频");
+    if (file.size > VIDEO_MAX_MB * 1024 * 1024) return setError(`视频太大，最大 ${VIDEO_MAX_MB} MB`);
     setError("");
     setEditing((e) => {
       if (!e) return e;
@@ -113,47 +156,26 @@ export default function Favorites() {
     }
   };
 
-  // 填完网址后自动去抓标题和简介；已经手动填过的不覆盖
-  const fillFromUrl = async () => {
-    if (!editing || editing.draft.kind !== "link") return;
-    const url = normalizeUrl(editing.draft.url);
-    if (!url) return;
-    if (url !== editing.draft.url) set("url", url);
-    if (editing.draft.title.trim()) return;
-    setFetching(true);
-    try {
-      const meta = await api.get<{ title: string; description: string }>(`/favorites/meta?url=${encodeURIComponent(url)}`);
-      setEditing((e) =>
-        e && normalizeUrl(e.draft.url) === url
-          ? { ...e, draft: { ...e.draft, title: e.draft.title.trim() || meta.title, content: e.draft.content.trim() || meta.description } }
-          : e,
-      );
-    } catch {
-      /* 网址格式不对之类的，保存时会提示，这里不打扰 */
-    } finally {
-      setFetching(false);
-    }
-  };
-
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!editing) return;
     setError("");
     const d = editing.draft;
     const body = { ...d, url: normalizeUrl(d.url), tags: splitTags(d.tags).join(","), group: d.group.trim() };
-    if (d.kind === "link" && !body.url) return setError("请填写网址");
     if (d.kind === "text" && !d.content.trim()) return setError("请填写摘录的内容");
     if (d.kind === "image" && !editing.id && !editing.file) return setError("请选择一张图片，或者直接粘贴截图");
+    if (d.kind === "video" && !editing.id && !editing.file && !body.url) return setError("请填写视频链接，或者选择一个视频文件");
     setSaving(true);
     try {
       if (editing.id) {
         await api.put(`/favorites/${editing.id}`, body);
-      } else if (d.kind === "image") {
+      } else if (editing.file) {
+        // 图片和视频文件用表单上传；没选文件的视频是一条链接，和摘录一样走下面的 JSON
         const form = new FormData();
-        form.append("file", editing.file!);
+        form.append("file", editing.file);
         for (const k of ["title", "url", "content", "group", "tags"] as const) form.append(k, body[k]);
         form.append("pinned", String(body.pinned));
-        await uploadFile<Favorite>("/favorites/image", form);
+        await uploadFile<Favorite>(`/favorites/${d.kind}`, form);
       } else {
         await api.post("/favorites", body);
       }
@@ -206,9 +228,9 @@ export default function Favorites() {
     <div>
       <PageHeader
         title="收藏"
-        sub="好网站、好句子、好图，先收着"
+        sub="好句子、好图、好视频，先收着"
         action={
-          <button className="btn-primary" onClick={() => openNew(kind ?? "link")}>
+          <button className="btn-primary" onClick={() => openNew(kind ?? "text")}>
             <Plus className="size-4" /> 添加收藏
           </button>
         }
@@ -219,10 +241,10 @@ export default function Favorites() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative w-full max-w-xs">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input className="input pl-9" placeholder="搜索标题、网址、内容、标签…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="input pl-9" placeholder="搜索标题、内容、出处、标签…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="flex rounded-xl bg-ink/6 p-1 text-sm" role="radiogroup" aria-label="收藏的种类">
-              {([null, "link", "text", "image"] as const).map((k) => (
+              {([null, "text", "image", "video"] as const).map((k) => (
                 <button
                   key={k ?? "all"}
                   role="radio"
@@ -282,6 +304,13 @@ export default function Favorites() {
               );
             })}
           </div>
+          <p className="mt-5 text-xs text-slate-500">
+            常用的网站放在{" "}
+            <Link to="/sites" className="underline underline-offset-4 hover:text-ink">
+              网址
+            </Link>{" "}
+            页面。
+          </p>
         </div>
       ) : shown.length === 0 ? (
         <div className="card py-12 text-center text-sm text-slate-400">
@@ -301,29 +330,13 @@ export default function Favorites() {
           )}
         </div>
       ) : (
-        // 三种卡片高度不一样，用多栏排版让它们像瀑布流一样上下紧挨着
+        // 几种卡片高度不一样，用多栏排版让它们像瀑布流一样上下紧挨着
         <div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
           {shown.map((f) => (
             <article key={f.id} className="card group mb-4 break-inside-avoid">
-              {f.kind === "link" && (
-                <>
-                  <a href={f.url} target="_blank" rel="noreferrer noopener" className="flex items-start gap-3" title={f.url}>
-                    <Favicon url={f.url} />
-                    <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 font-medium leading-snug underline-offset-4 group-hover:underline">{f.title || hostOf(f.url)}</span>
-                      <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                        <span className="truncate">{hostOf(f.url)}</span>
-                        <ExternalLink className="size-3 shrink-0" />
-                      </span>
-                    </span>
-                  </a>
-                  {f.content && <p className="mt-2.5 line-clamp-3 text-sm text-slate-600">{f.content}</p>}
-                </>
-              )}
-
               {f.kind === "text" && (
                 <>
-                  <button className="block w-full cursor-pointer text-left" onClick={() => setViewing(f)} title="查看全文">
+                  <button className="block w-full cursor-pointer text-left" onClick={() => view(f)} title="查看全文">
                     <blockquote className="line-clamp-[9] whitespace-pre-wrap border-l-2 border-brand/50 pl-3 text-sm leading-relaxed">{f.content}</blockquote>
                   </button>
                   {(f.title || f.url) && (
@@ -343,10 +356,41 @@ export default function Favorites() {
 
               {f.kind === "image" && f.image && (
                 <>
-                  <button className="block w-full cursor-zoom-in" onClick={() => setViewing(f)} title="查看大图">
+                  <button className="block w-full cursor-zoom-in" onClick={() => view(f)} title="查看大图">
                     <img src={f.image} alt={f.title} loading="lazy" className="max-h-96 w-full rounded-[10px] bg-ink/6 object-cover" />
                   </button>
                   {f.title && <h3 className="mt-2.5 truncate text-sm font-medium">{f.title}</h3>}
+                  {f.content && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{f.content}</p>}
+                </>
+              )}
+
+              {f.kind === "video" && (
+                <>
+                  <button className="group/play relative block aspect-video w-full cursor-pointer overflow-hidden rounded-[10px] bg-black/40" onClick={() => view(f)} title="播放">
+                    {f.video ? (
+                      // 上传的视频没有单独的封面：只读一点点数据，停在半秒的那一帧当封面
+                      <video src={`${f.video}#t=0.5`} preload="metadata" muted playsInline tabIndex={-1} className="size-full object-cover" />
+                    ) : f.cover ? (
+                      <img src={f.cover} alt="" loading="lazy" className="size-full object-cover" />
+                    ) : (
+                      <span className="grid size-full place-items-center text-slate-500">
+                        <Film className="size-8" />
+                      </span>
+                    )}
+                    {/* 播放按钮压在画面上，颜色不跟主题走：封面什么颜色都要看得清 */}
+                    <span className="absolute inset-0 grid place-items-center bg-black/15 transition group-hover/play:bg-black/30">
+                      <span className="grid size-11 place-items-center rounded-full bg-white/90 text-black shadow-lg">
+                        <Play className="ml-0.5 size-5 fill-current" />
+                      </span>
+                    </span>
+                  </button>
+                  <h3 className="mt-2.5 line-clamp-2 text-sm font-medium leading-snug">{f.title || "视频"}</h3>
+                  {f.url && (
+                    <a href={f.url} target="_blank" rel="noreferrer noopener" className="mt-0.5 flex w-fit max-w-full items-center gap-1 text-xs text-slate-500 hover:text-ink" title="在原网页打开">
+                      <span className="truncate">{hostOf(f.url)}</span>
+                      <ExternalLink className="size-3 shrink-0" />
+                    </a>
+                  )}
                   {f.content && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{f.content}</p>}
                 </>
               )}
@@ -395,13 +439,39 @@ export default function Favorites() {
       )}
 
       {viewing && (
-        <Modal title={viewing.title || KINDS[viewing.kind].label} onClose={() => setViewing(null)}>
+        <Modal title={viewing.title || KINDS[viewing.kind].label} onClose={() => setViewing(null)} wide={viewing.kind === "video"}>
           {viewing.kind === "image" && viewing.image ? (
             <img src={viewing.image} alt={viewing.title} className="max-h-[65vh] w-full rounded-[10px] bg-ink/6 object-contain" />
+          ) : viewing.kind === "video" ? (
+            viewing.video ? (
+              <video src={viewing.video} controls autoPlay playsInline className="max-h-[70vh] w-full rounded-[10px] bg-black" />
+            ) : embedOf(viewing.url) ? (
+              <div className="aspect-video overflow-hidden rounded-[10px] bg-black">
+                <iframe
+                  src={embedOf(viewing.url)!}
+                  title={viewing.title || "视频"}
+                  className="size-full border-0"
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
+            ) : (
+              // 认不出的视频网站没法嵌进来播放，给个去原网页的入口
+              <div className="relative grid aspect-video place-items-center overflow-hidden rounded-[10px] bg-black/40">
+                {viewing.cover && <img src={viewing.cover} alt="" className="absolute inset-0 size-full object-cover opacity-50" />}
+                <div className="relative px-6 text-center">
+                  <a href={viewing.url} target="_blank" rel="noreferrer noopener" className="btn-primary">
+                    <ExternalLink className="size-4" /> 去 {hostOf(viewing.url)} 观看
+                  </a>
+                  <p className="mt-3 text-xs text-slate-600">这个网站的视频不能直接在这里播放。</p>
+                </div>
+              </div>
+            )
           ) : (
             <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">{viewing.content}</div>
           )}
-          {viewing.kind === "image" && viewing.content && <p className="mt-3 text-sm text-slate-600">{viewing.content}</p>}
+          {viewing.kind !== "text" && viewing.content && <p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">{viewing.content}</p>}
           {viewing.url && (
             <p className="mt-3 truncate text-xs text-slate-500">
               出自{" "}
@@ -429,7 +499,7 @@ export default function Favorites() {
       {editing && (
         <Modal title={editing.id ? `编辑${KINDS[editing.draft.kind].label}` : "添加收藏"} onClose={closeEditor}>
           <form onSubmit={save} onPaste={onPaste} className="space-y-3">
-            {/* 种类只能在新建时选；已有的收藏不能从网址变成图片 */}
+            {/* 种类只能在新建时选；已有的收藏不能从摘录变成图片 */}
             {!editing.id && (
               <div className="flex rounded-xl bg-ink/6 p-1 text-sm" role="radiogroup" aria-label="收藏的种类">
                 {(Object.keys(KINDS) as FavoriteKind[]).map((k) => {
@@ -440,25 +510,13 @@ export default function Favorites() {
                       key={k}
                       role="radio"
                       aria-checked={editing.draft.kind === k}
-                      onClick={() => {
-                        setError("");
-                        set("kind", k);
-                      }}
+                      onClick={() => switchKind(k)}
                       className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg py-1.5 transition ${editing.draft.kind === k ? "bg-surface shadow-sm" : "text-slate-500 hover:text-ink"}`}
                     >
                       <K.icon className="size-4" /> {K.label}
                     </button>
                   );
                 })}
-              </div>
-            )}
-
-            {editing.draft.kind === "link" && (
-              <div>
-                <label className="label" htmlFor="fav-url">
-                  网址
-                </label>
-                <input id="fav-url" className="input" value={editing.draft.url} onChange={(e) => set("url", e.target.value)} onBlur={fillFromUrl} placeholder="https://" autoFocus={!editing.id} inputMode="url" />
               </div>
             )}
 
@@ -492,25 +550,65 @@ export default function Favorites() {
               </div>
             )}
 
+            {editing.draft.kind === "video" && !editing.id && (
+              <>
+                {/* 两种来源二选一：贴一个视频网页的链接，或者上传一个视频文件。选了文件后，链接这一栏就当来源网址用 */}
+                <div>
+                  <label className="label" htmlFor="fav-video-url">
+                    {editing.file ? "来源网址（可不填）" : "视频链接"}
+                  </label>
+                  <input
+                    id="fav-video-url"
+                    className="input"
+                    value={editing.draft.url}
+                    onChange={(e) => set("url", e.target.value)}
+                    placeholder={editing.file ? "https://" : "B 站、YouTube 等视频页面的地址"}
+                    autoFocus
+                    inputMode="url"
+                    spellCheck={false}
+                  />
+                </div>
+                <div>
+                  <span className="label">{editing.file ? "视频文件" : "或者上传视频文件"}</span>
+                  <button
+                    type="button"
+                    onClick={() => videoRef.current?.click()}
+                    className="grid w-full cursor-pointer place-items-center rounded-[10px] border border-dashed border-ink/20 bg-ink/[0.025] p-3 text-sm text-slate-500 transition hover:border-brand/60 hover:text-ink"
+                  >
+                    {editing.file && editing.preview ? (
+                      <span className="flex w-full flex-col items-center gap-2">
+                        <video src={`${editing.preview}#t=0.5`} preload="metadata" muted playsInline className="max-h-40 rounded-lg" />
+                        <span className="max-w-full truncate text-xs">
+                          {editing.file.name}（{(editing.file.size / 1024 / 1024).toFixed(1)} MB），点击换一个
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="flex flex-col items-center gap-1.5 py-4">
+                        <Film className="size-6" />
+                        点击选择视频文件（MP4、WebM、MOV，最大 {VIDEO_MAX_MB} MB）
+                      </span>
+                    )}
+                  </button>
+                  <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime" hidden onChange={(e) => pickVideo(e.target.files?.[0])} />
+                </div>
+              </>
+            )}
+
             <div>
               <label className="label flex items-center gap-1.5" htmlFor="fav-title">
                 {editing.draft.kind === "text" ? "出处（书名、作者、文章名，可不填）" : "标题"}
-                {fetching && (
-                  <span className="flex items-center gap-1 font-normal text-slate-400">
-                    <LoaderCircle className="size-3 animate-spin" /> 正在获取网页标题…
-                  </span>
-                )}
               </label>
               <input
                 id="fav-title"
                 className="input"
                 value={editing.draft.title}
                 onChange={(e) => set("title", e.target.value)}
-                placeholder={editing.draft.kind === "link" ? "不填会自动用网页标题" : editing.draft.kind === "image" ? "不填会用文件名" : ""}
+                placeholder={editing.id ? "" : editing.draft.kind === "image" ? "不填会用文件名" : editing.draft.kind === "video" ? "不填会自动用视频的标题或文件名" : ""}
               />
             </div>
 
-            {editing.draft.kind !== "link" && (
+            {/* 新建视频时，上面的"视频链接"一栏已经兼任来源网址；视频链接保存后不能再改 */}
+            {!(editing.draft.kind === "video" && (!editing.id || editing.linkVideo)) && (
               <div>
                 <label className="label" htmlFor="fav-source">
                   来源网址（可不填）
@@ -559,7 +657,7 @@ export default function Favorites() {
                 取消
               </button>
               <button className="btn-primary" disabled={saving}>
-                {saving ? "保存中…" : editing.id ? "保存" : "收藏"}
+                {saving ? (editing.id ? "保存中…" : editing.file ? "上传中…" : editing.draft.kind === "video" ? "正在获取封面…" : "保存中…") : editing.id ? "保存" : "收藏"}
               </button>
             </div>
           </form>
