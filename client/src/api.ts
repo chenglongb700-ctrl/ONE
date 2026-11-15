@@ -70,6 +70,25 @@ export type Stats = {
   today: string;
 };
 
+/** 「热门」榜单上的一个 GitHub 项目 */
+export type TrendingRepo = {
+  /** 在当天榜单里的名次，从 1 开始 */
+  rank: number;
+  /** owner/repo */
+  fullName: string;
+  description: string;
+  /** 主要的编程语言，可能为空 */
+  language: string;
+  stars: number;
+  forks: number;
+  /** 今天新增的星标数，榜单按它排 */
+  starsToday: number;
+  /** 领域分类（AI、前端、开发工具…），服务器按关键词判断的 */
+  category: string;
+  /** 上一份榜单里没有它 */
+  isNew: boolean;
+};
+
 /** 「资讯」里的一篇文章 */
 export type Article = {
   id: number;

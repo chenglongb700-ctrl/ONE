@@ -270,6 +270,28 @@ CREATE INDEX IF NOT EXISTS idx_articles_user ON articles(user_id, published_at D
 `);
 ensureColumn("users", "feeds_seeded", "INTEGER NOT NULL DEFAULT 0"); // 这个账号是否已经加过一次内置的新闻来源
 
+// GitHub 热门：每天存一份榜单快照。这两张表没有 user_id——榜单对所有账号都一样，不用每人存一份。
+// trending_days 记每一天的榜单是什么时候读回来的；trending 是那一天榜单上的项目。
+db.exec(`
+CREATE TABLE IF NOT EXISTS trending_days (
+  date TEXT PRIMARY KEY,              -- YYYY-MM-DD（服务器所在地的日期）
+  fetched_at TEXT NOT NULL,           -- ISO 格式
+  failed_pages INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS trending (
+  date TEXT NOT NULL REFERENCES trending_days(date) ON DELETE CASCADE,
+  rank INTEGER NOT NULL,
+  full_name TEXT NOT NULL,            -- owner/repo
+  description TEXT NOT NULL DEFAULT '',
+  language TEXT NOT NULL DEFAULT '',
+  stars INTEGER NOT NULL DEFAULT 0,
+  forks INTEGER NOT NULL DEFAULT 0,
+  stars_today INTEGER NOT NULL DEFAULT 0,
+  category TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (date, full_name)
+);
+`);
+
 // 音乐：source = file（上传到 data/music/ 的文件）或 url（外部链接）
 db.exec(`
 CREATE TABLE IF NOT EXISTS tracks (

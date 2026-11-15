@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Bookmark, BookOpen, Briefcase, CircleCheckBig, Compass, LayoutDashboard, Leaf, LogOut, Moon, Newspaper, PenLine, Settings as SettingsIcon, SquareSlash, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { Bookmark, BookOpen, Briefcase, CircleCheckBig, Compass, Flame, LayoutDashboard, Leaf, LogOut, Moon, Newspaper, PenLine, Settings as SettingsIcon, SquareSlash, Sun, SunMoon, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
@@ -18,6 +18,7 @@ export const MODULES: Record<string, { label: string; icon: LucideIcon }> = {
   "/life": { label: "生活", icon: Leaf },
   "/journal": { label: "感悟", icon: PenLine },
   "/news": { label: "资讯", icon: Newspaper },
+  "/trending": { label: "热门", icon: Flame },
   "/favorites": { label: "收藏", icon: Bookmark },
   "/sites": { label: "网址", icon: Compass },
   "/commands": { label: "命令", icon: SquareSlash },

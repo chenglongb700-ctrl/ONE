@@ -21,6 +21,7 @@ import { sitesRouter } from "./routes/sites.js";
 import { countdownsRouter } from "./routes/countdowns.js";
 import { dropRouter } from "./routes/drop.js";
 import { newsRouter } from "./routes/news.js";
+import { trendingRouter } from "./routes/trending.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" })); // 歌词文本可能比默认的 100kb 大
@@ -43,6 +44,7 @@ app.use("/api/sites", requireAuth, sitesRouter);
 app.use("/api/countdowns", requireAuth, countdownsRouter);
 app.use("/api/drop", requireAuth, dropRouter);
 app.use("/api/news", requireAuth, newsRouter);
+app.use("/api/trending", requireAuth, trendingRouter);
 app.use("/api/stats", requireAuth, statsRouter);
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "接口不存在" });
