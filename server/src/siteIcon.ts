@@ -3,7 +3,7 @@ import { mkdirSync, unlink, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sniffBytes } from "./images.js";
-import { clean, fetchBytes, fetchHtml, metaContent, pageTitle } from "./pageMeta.js";
+import { clean, fetchBytes, fetchHtml, metaContent, pageTitle, type Page } from "./pageMeta.js";
 
 /**
  * 「网址」的 logo：添加网址时，服务器去那个网站把图标取回来，存在 server/data/site-icons/。
@@ -86,12 +86,13 @@ function siteName(html: string, url: URL): string {
 /**
  * 去一个网站取回它的标题和图标。哪样拿不到，哪样就是空的（title: ""，icon: null），不抛错。
  * 图标已经存到硬盘上，返回的是文件名；调用的人如果最后没用上，要自己 removeIcon。
+ * 调用的人如果已经把网页抓回来了，可以用 fetched 传进来，省得再抓一遍（null 表示抓过了但没抓到）。
  */
-export async function fetchSiteInfo(rawUrl: string): Promise<{ title: string; icon: string | null }> {
+export async function fetchSiteInfo(rawUrl: string, fetched?: Page | null): Promise<{ title: string; icon: string | null }> {
   const deadline = Date.now() + BUDGET_MS;
   const left = () => Math.max(deadline - Date.now(), 0);
 
-  const page = await fetchHtml(rawUrl, 6000);
+  const page = fetched === undefined ? await fetchHtml(rawUrl, 6000) : fetched;
   const title = page ? siteName(page.html, page.url) : "";
   // 网页本身打不开时，仍然试一下 /favicon.ico：有的网站首页要登录，图标却能直接拿
   const candidates = page ? iconCandidates(page.html, page.url) : iconCandidates("", new URL(rawUrl));

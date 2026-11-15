@@ -21,6 +21,7 @@
 - **网址**：常用网站的导航页——添加网址时服务器自动去对方网站取回 logo 和网站名（取不到就用名称的第一个字，也可以自己上传图标）；按分类分区显示，可以置顶、搜索，点一下在新标签页打开
 - **命令**：Claude Code 斜杠命令速查表——内置 83 条常用命令的中文说明（整理自官方文档），按类别分组；点命令名复制，可以搜索（按 `/` 键直达搜索框）、标为常用、写自己的备注，也可以添加自己的命令；删掉的内置命令能一键恢复
 - **倒计时**：每个页面右上角的一枚小胶囊，显示离某个日子还有多少天（填了时间的，最后一天精确到秒）；点开可以管理多个倒计时，自动显示最近的一个，也可以固定一个；过去的日子显示「已过 N 天」，可以当纪念日
+- **拖进来自动归类**：把网址、一段文字、图片或视频文件从别处拖到网站的任何位置，松手后自动判断是什么并放好——视频平台的视频链接和视频文件进「收藏 › 视频」，图片进「收藏 › 图片」，其他网址进「网址」（认得出的平台顺便分好类），文字进「收藏 › 摘录」；收藏的卡片上会显示来自哪个平台（B 站、YouTube、知乎、GitHub…）。全靠规则判断，不接 AI
 - **外观**：「琉璃」风格——一张铺满全屏的天空壁纸，所有面板都是透光的毛玻璃，大号细体数字；两套主题：黄昏（深色，默认）和晨曦（浅色），也可以跟随系统；全站只用一个强调色（默认琥珀金）
 - **设置**：侧边栏底部的齿轮按钮。可以选主题、换强调色（琥珀金 / 钴蓝 / 青 / 暖橙 / 玫瑰红 / 紫罗兰）、调所有玻璃面板的通透度、开关音乐自动播放（这些偏好存在浏览器本地，改了立刻生效）；还可以上传头像（自动裁成正方形）和自定义壁纸（大图自动缩到长边 2560 像素），这两项存在服务器上，跟着账号走
 - **音乐**：底部播放条，切换页面不中断。可以上传音频文件（mp3 / m4a / flac / wav 等，单个最大 100 MB）或添加音频链接；列表循环、单曲循环、随机播放；LRC 歌词滚动显示，点歌词跳转；频谱可视化（Web Audio）；可设置进入网站后第一次点击时自动播放
@@ -58,11 +59,12 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / sites / commands / countdowns / avatar / wallpaper / stats
+  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / sites / commands / countdowns / drop / avatar / wallpaper / stats
   images.ts       检查上传的文件是不是真的图片
   pageMeta.ts     安全地访问公网网页（只读开头一段，不访问内网地址）
   commandSeed.ts  内置的斜杠命令清单（每个账号第一次打开「命令」时抄一份）
   siteIcon.ts     取回网站的 logo 和名称（添加网址时用）
+  platforms.ts    平台识别表：域名 → 平台名、是不是视频、默认分类（想多认一个平台在这里加一行）
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -106,6 +108,7 @@ client/src/
 | POST / GET | `/sites/:id/icon` | 上传自己的图标（multipart，字段名 `file`，最大 1 MB）/ 读取图标 |
 | GET / POST | `/countdowns` | 倒计时列表 / 新建 `{title, date, time, pinned}`（`time` 可为空；`pinned` 同时只有一个） |
 | PUT / DELETE | `/countdowns/:id` | 修改 / 删除 |
+| POST | `/drop` | 拖进来自动归类：`{text}`（网址或文字）或 `{imageUrl, pageUrl}`（网页上的图片），返回 `{where, kind, title, platform, category}` |
 | GET | `/habits/checks?from=&to=` | 一段时间内的打卡记录 |
 | POST | `/habits/:id/toggle` `{date}` | 打卡 / 取消打卡 |
 

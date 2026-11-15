@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { db } from "../db.js";
 import { sniffBytes, sniffImage, sniffVideo } from "../images.js";
-import { clean, fetchBytes, fetchHtml, metaContent, pageTitle, safeFetch } from "../pageMeta.js";
+import { clean, fetchBytes, fetchHtml, metaContent, pageTitle, safeFetch, type Page } from "../pageMeta.js";
+import { platformName } from "../platforms.js";
 
 /**
  * 收藏夹。一条收藏是三种之一（普通网址不放这里，统一放在「网址」页面，见 sites.ts）：
@@ -59,6 +60,8 @@ const toClient = (r: Row) => ({
   image: r.kind === "image" ? `/api/favorites/${r.id}/image` : null,
   video: r.kind === "video" && r.file_name ? `/api/favorites/${r.id}/video` : null,
   cover: r.cover ? `/api/favorites/${r.id}/cover` : null,
+  // 来自哪个平台：按出处的网址查表（platforms.ts）；没有出处的图片和视频文件是自己传的
+  platform: (r.url && platformName(r.url)) || (r.file_name && !r.url ? "本地" : ""),
   created_at: r.created_at,
 });
 
@@ -126,7 +129,7 @@ const removeFile = (name: string | null) => {
  * 去视频所在的网页取标题和封面图（网页里的 og:image，B 站、YouTube 等视频网站都有）。
  * 哪样拿不到，哪样就是空的，不抛错。短链接（比如 b23.tv）会跟着跳转，返回最终的网页地址。
  */
-async function fetchVideoPage(rawUrl: string): Promise<{ title: string; cover: string | null; url: string }> {
+async function fetchVideoPage(rawUrl: string, fetched?: Page | null): Promise<{ title: string; cover: string | null; url: string }> {
   // YouTube 的网页对程序只给一个空壳，标题和封面要从它公开的 oEmbed 接口拿
   if (/(^|\.)(youtube\.com|youtu\.be)$/i.test(new URL(rawUrl).hostname)) {
     try {
@@ -144,7 +147,8 @@ async function fetchVideoPage(rawUrl: string): Promise<{ title: string; cover: s
       /* 连不上就按普通网页再试一次 */
     }
   }
-  const page = await fetchHtml(rawUrl);
+  // 调用的人已经把网页抓回来了就直接用（null 表示抓过了但没抓到）
+  const page = fetched === undefined ? await fetchHtml(rawUrl) : fetched;
   if (!page) return { title: "", cover: null, url: rawUrl };
   const image = clean(metaContent(page.html, "og:image"), 2000);
   let cover: string | null = null;
@@ -180,18 +184,36 @@ favoritesRouter.get("/", (req, res) => {
 // 新建摘录或视频链接（JSON）。视频链接要去对方网页取标题和封面，会花几秒
 favoritesRouter.post("/", async (req, res) => {
   const d = createSchema.parse(req.body);
-  let { title, url } = d;
-  let cover: string | null = null;
-  if (d.kind === "video") {
-    const page = await fetchVideoPage(d.url);
-    cover = page.cover;
-    title ||= page.title;
-    // 短链接换成跳转后的真实地址：以后才认得出是哪个网站的视频，能直接在页面里播放
-    if (new URL(page.url).hostname !== new URL(d.url).hostname) url = page.url;
-  }
-  const r = insert.run(req.userId!, d.kind, title, url, d.content, null, null, cover, d.group, d.tags, d.pinned ? 1 : 0);
-  res.status(201).json(toClient(getOwn(Number(r.lastInsertRowid), req.userId!)!));
+  res.status(201).json(d.kind === "video" ? await addVideoLink(req.userId!, d) : addText(req.userId!, d));
 });
+
+// 下面三个函数各新建一种收藏，返回给前端的那条记录。「拖进来自动归类」（drop.ts）也用它们。
+type Extra = { title?: string; url?: string; content?: string; group?: string; tags?: string; pinned?: boolean };
+
+export function addText(uid: number, d: Extra & { content: string }) {
+  const r = insert.run(uid, "text", d.title ?? "", d.url ?? "", d.content, null, null, null, d.group ?? "", d.tags ?? "", d.pinned ? 1 : 0);
+  return toClient(getOwn(Number(r.lastInsertRowid), uid)!);
+}
+
+/** 视频链接。page：调用的人已经抓回来的网页，传进来就不再抓第二遍 */
+export async function addVideoLink(uid: number, d: Extra & { url: string }, page?: Page | null) {
+  const info = await fetchVideoPage(d.url, page);
+  // 短链接换成跳转后的真实地址：以后才认得出是哪个网站的视频，能直接在页面里播放
+  const url = new URL(info.url).hostname !== new URL(d.url).hostname ? info.url : d.url;
+  const r = insert.run(uid, "video", d.title || info.title, url, d.content ?? "", null, null, info.cover, d.group ?? "", d.tags ?? "", d.pinned ? 1 : 0);
+  return toClient(getOwn(Number(r.lastInsertRowid), uid)!);
+}
+
+/** 已经下载到内存里的图片（从别的网页拖过来的）。不是图片、或者是 ico 这种不适合收藏的，返回 null */
+export function addImageBytes(uid: number, bytes: Uint8Array, d: Extra) {
+  const kind = sniffBytes(bytes);
+  if (!kind || kind === "ico") return null;
+  const name = `${randomUUID()}.${kind}`;
+  writeFileSync(resolve(FAVORITES_DIR, name), bytes);
+  const mime = COVER_MIME[`.${kind}`];
+  const r = insert.run(uid, "image", d.title ?? "", d.url ?? "", d.content ?? "", name, mime, null, d.group ?? "", d.tags ?? "", d.pinned ? 1 : 0);
+  return toClient(getOwn(Number(r.lastInsertRowid), uid)!);
+}
 
 // 新建图片或视频文件（multipart/form-data：file 是文件，其余字段和上面一样）
 const fileRoute = (kind: "image" | "video", upload: multer.Multer, maxMb: number, isValid: (path: string) => unknown) =>

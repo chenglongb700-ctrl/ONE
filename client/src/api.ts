@@ -132,6 +132,8 @@ export type Favorite = {
   video: string | null;
   /** 视频链接的封面图地址，没取到时为 null */
   cover: string | null;
+  /** 来自哪个平台（按出处网址认出来的，比如 B站）；自己上传的文件是「本地」；认不出为空字符串 */
+  platform: string;
   created_at: string;
 };
 

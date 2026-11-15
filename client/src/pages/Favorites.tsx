@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, uploadFile, type Favorite, type FavoriteKind } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
+import { DROPPED_EVENT } from "../components/DropZone";
 import { useMusic } from "../music/MusicContext";
 import { hostOf, normalizeUrl } from "../url";
 
@@ -66,6 +67,9 @@ export default function Favorites() {
   const load =() => api.get<Favorite[]>("/favorites").then(setList);
   useEffect(() => {
     load();
+    // 有东西被拖进来自动归类之后，重新读一遍
+    window.addEventListener(DROPPED_EVENT, load);
+    return () => window.removeEventListener(DROPPED_EVENT, load);
   }, []);
 
   const all = list ?? [];
@@ -79,7 +83,7 @@ export default function Favorites() {
       (!kind || f.kind === kind) &&
       (group === null || (group === UNGROUPED ? !f.group : f.group === group)) &&
       (!tag || splitTags(f.tags).includes(tag)) &&
-      (!kw || [f.title, f.url, f.content, f.tags, f.group].some((s) => s.toLowerCase().includes(kw))),
+      (!kw || [f.title, f.url, f.content, f.tags, f.group, f.platform].some((s) => s.toLowerCase().includes(kw))),
   );
 
   // ---------- 新建 / 编辑 ----------
@@ -228,7 +232,7 @@ export default function Favorites() {
     <div>
       <PageHeader
         title="收藏"
-        sub="好句子、好图、好视频，先收着"
+        sub="好句子、好图、好视频，先收着；也可以直接拖进来"
         action={
           <button className="btn-primary" onClick={() => openNew(kind ?? "text")}>
             <Plus className="size-4" /> 添加收藏
@@ -397,6 +401,11 @@ export default function Favorites() {
 
               <div className="mt-3 flex items-center gap-1">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-1">
+                  {f.platform && (
+                    <button className="cursor-pointer rounded-md bg-brand/15 px-1.5 py-0.5 text-xs text-brand hover:bg-brand/25" onClick={() => setQ(f.platform)} title="只看来自这里的">
+                      {f.platform}
+                    </button>
+                  )}
                   {f.group && (
                     <button className="tag flex cursor-pointer items-center gap-1 hover:text-ink" onClick={() => setGroup(f.group)} title="只看这个分组">
                       <Folder className="size-3" />

@@ -3,6 +3,7 @@ import multer from "multer";
 import { extname } from "node:path";
 import { z } from "zod";
 import { db } from "../db.js";
+import type { Page } from "../pageMeta.js";
 import { fetchSiteInfo, ICON_MAX_BYTES, ICON_MIME, removeIcon, saveIcon, SITE_ICON_DIR } from "../siteIcon.js";
 
 /**
@@ -61,16 +62,25 @@ sitesRouter.get("/", (req, res) => {
 
 // 添加：去网站取标题和图标，所以会花一两秒（最多十秒左右）
 sitesRouter.post("/", async (req, res) => {
-  const d = schema.parse(req.body);
-  if (urlTaken(req.userId!, d.url)) return void res.status(400).json({ error: "这个网址已经添加过了" });
-  const info = await fetchSiteInfo(d.url);
+  const site = await addSite(req.userId!, schema.parse(req.body));
+  if (!site) return void res.status(400).json({ error: "这个网址已经添加过了" });
+  res.status(201).json(site);
+});
+
+/**
+ * 添加一个网址，返回给前端的那条记录；这个网址已经有了就返回 null。「拖进来自动归类」也走这里。
+ * page：调用的人已经抓回来的网页，传进来就不再抓第二遍。
+ */
+export async function addSite(uid: number, d: z.infer<typeof schema>, page?: Page | null) {
+  if (urlTaken(uid, d.url)) return null;
+  const info = await fetchSiteInfo(d.url, page);
   // 名称：自己填的 > 网页标题 > 域名
   const title = d.title || info.title.slice(0, 60) || hostOf(d.url);
   const r = db
     .prepare("INSERT INTO sites (user_id, title, url, category, pinned, icon) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(req.userId!, title, d.url, d.category, d.pinned ? 1 : 0, info.icon);
-  res.status(201).json(toClient(getOwn(Number(r.lastInsertRowid), req.userId!)!));
-});
+    .run(uid, title, d.url, d.category, d.pinned ? 1 : 0, info.icon);
+  return toClient(getOwn(Number(r.lastInsertRowid), uid)!);
+}
 
 // 修改（可以只传要改的字段）。换了网址就重新取一次图标
 sitesRouter.put("/:id", async (req, res) => {

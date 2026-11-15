@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { api, uploadFile, type Site } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
+import { DROPPED_EVENT } from "../components/DropZone";
 import { hostOf, normalizeUrl } from "../url";
 
 const UNSORTED = "\u0000"; // 筛选"未分类"用的内部标记，不会和真实的分类名重复
@@ -53,6 +54,9 @@ export default function Sites() {
   const load = () => api.get<Site[]>("/sites").then(setList);
   useEffect(() => {
     load();
+    // 有东西被拖进来自动归类之后，重新读一遍
+    window.addEventListener(DROPPED_EVENT, load);
+    return () => window.removeEventListener(DROPPED_EVENT, load);
   }, []);
 
   const all = list ?? [];
@@ -180,7 +184,7 @@ export default function Sites() {
     <div>
       <PageHeader
         title="网址"
-        sub="常去的网站放这里，点一下就打开"
+        sub="常去的网站放这里，点一下就打开；也可以把网址直接拖进来"
         action={
           <button className="btn-primary" onClick={openNew}>
             <Plus className="size-4" /> 添加网址

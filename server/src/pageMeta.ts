@@ -102,8 +102,11 @@ export async function safeFetch(rawUrl: string | URL, accept: string, timeoutMs 
   return null;
 }
 
+/** 抓回来的一个网页：开头一段 HTML，和跟随跳转之后的最终地址 */
+export type Page = { html: string; url: URL };
+
 /** 抓回一个网页的 HTML（只读开头的 300 KB）和它的最终地址；不是网页或者抓不到时返回 null */
-export async function fetchHtml(rawUrl: string, timeoutMs = TIMEOUT_MS): Promise<{ html: string; url: URL } | null> {
+export async function fetchHtml(rawUrl: string, timeoutMs = TIMEOUT_MS): Promise<Page | null> {
   try {
     const got = await safeFetch(rawUrl, "text/html,application/xhtml+xml", timeoutMs);
     if (!got) return null;
@@ -134,5 +137,30 @@ export async function fetchBytes(url: string, accept: string, maxBytes: number, 
     return bytes.byteLength > maxBytes ? null : bytes;
   } catch {
     return null;
+  }
+}
+
+/**
+ * 去看一眼一个网址后面到底是什么：网页、图片、视频文件，还是别的 / 打不开。
+ * 「拖进来自动归类」用它来决定这个网址该放到哪里。图片不超过 imageMaxBytes 的会顺便下载回来。
+ */
+export type Inspected = { kind: "page"; page: Page } | { kind: "image"; bytes: Uint8Array } | { kind: "video" } | { kind: "unknown" };
+
+export async function inspectUrl(rawUrl: string, imageMaxBytes: number): Promise<Inspected> {
+  try {
+    const got = await safeFetch(rawUrl, "text/html,application/xhtml+xml,image/*,*/*;q=0.5");
+    if (!got) return { kind: "unknown" };
+    const type = (got.res.headers.get("content-type") ?? "").toLowerCase();
+    if (got.res.ok && /html|xml/.test(type) && !type.startsWith("image/")) {
+      return { kind: "page", page: { html: decodeHtml(await readHead(got.res), type), url: got.url } };
+    }
+    if (got.res.ok && type.startsWith("image/")) {
+      const bytes = await readHead(got.res, imageMaxBytes + 1);
+      return bytes.byteLength > imageMaxBytes ? { kind: "unknown" } : { kind: "image", bytes };
+    }
+    got.res.body?.cancel().catch(() => {});
+    return got.res.ok && type.startsWith("video/") ? { kind: "video" } : { kind: "unknown" };
+  } catch {
+    return { kind: "unknown" }; // 超时、域名不存在、证书错误等等
   }
 }

@@ -6,6 +6,7 @@ import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
 import Avatar from "./Avatar";
 import CountdownCorner from "./Countdown";
+import DropZone from "./DropZone";
 import { Mark, Wordmark } from "./Brand";
 import Settings from "./Settings";
 
@@ -108,6 +109,7 @@ export default function Layout() {
         </main>
       </div>
       <PlayerBar />
+      <DropZone />
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} onLogout={onLogout} />}
     </div>
   );
