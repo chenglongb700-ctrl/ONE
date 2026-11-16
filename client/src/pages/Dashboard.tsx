@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { api, today, type LifeItem, type Stats, type Task, type TaskStatus } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { PRIORITY } from "./Work";
-import { COLORS } from "./Habits";
+import AiSummaryButton from "../components/AiSummary";
+import { ActivityChart, MoodChart, TaskChart, useCharts } from "../components/Insights";
 
 function greeting() {
   const h = new Date().getHours();
@@ -18,7 +19,7 @@ function greeting() {
 
 const LIFE_LIMIT = 8; // 生活清单最多列出几条，多的去清单页看
 
-/** 圆形勾选按钮：工作、打卡、生活三种事项共用 */
+/** 圆形勾选按钮：工作、生活两种事项共用 */
 function CheckDot({ on, onClick, label, tone = "bg-brand text-paper" }: { on: boolean; onClick: () => void; label: string; tone?: string }) {
   return (
     <button
@@ -77,6 +78,7 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [prevStatus, setPrevStatus] = useState<Record<number, TaskStatus>>({});
   const [life, setLife] = useState<LifeItem[]>([]);
+  const charts = useCharts(); // 三张图的数据
   const t0 = today();
 
   const loadStats = () => api.get<Stats>("/stats").then(setS);
@@ -119,28 +121,13 @@ export default function Dashboard() {
     }
   };
 
-  const toggleHabit = async (id: number) => {
-    if (!s) return;
-    const next = s.todayHabits.map((h) => (h.id === id ? { ...h, checked: !h.checked } : h));
-    setS({ ...s, todayHabits: next });
-    try {
-      await api.post(`/habits/${id}/toggle`, { date: s.today });
-      if (next.length > 1 && next.every((h) => h.checked)) toast.success("今天的习惯全部完成！");
-    } catch (err) {
-      fail(err);
-      loadStats();
-    }
-  };
-
   const now = new Date();
   const weekday = now.toLocaleDateString("zh-CN", { weekday: "long" });
   const dateText = `${now.getMonth() + 1}月${now.getDate()}日`;
-  const habits = s?.todayHabits ?? [];
-  const habitsDone = habits.filter((h) => h.checked).length;
 
   // 一句话概括：还剩几件事
-  const left = tasks.filter((t) => t.status !== "done").length + (habits.length - habitsDone) + life.filter((x) => !x.done).length;
-  const total = tasks.length + habits.length + life.length;
+  const left = tasks.filter((t) => t.status !== "done").length + life.filter((x) => !x.done).length;
+  const total = tasks.length + life.length;
   const summary = !s ? "" : total === 0 ? "今天还没有安排。" : left === 0 ? "今天的事都做完了。" : `今天还有 ${left} 件事。`;
 
   return (
@@ -153,7 +140,11 @@ export default function Dashboard() {
         <h1 className="text-[30px] font-light leading-tight tracking-wide">
           {greeting()}，{user?.username}
         </h1>
-        <p className="mt-1.5 h-5 text-sm text-slate-500">{summary}</p>
+        <div className="mt-1.5 flex h-5 items-center gap-3 text-sm text-slate-500">
+          <span>{summary}</span>
+          {/* 让 AI 把今天 / 本周 / 本月的记录写成一份总结 */}
+          <AiSummaryButton kind="personal" className="inline-flex cursor-pointer items-center gap-1 rounded-md text-sm text-ink underline-offset-4 hover:underline" />
+        </div>
       </header>
 
       {/* 手机上日期已经显示在问候语上方，这一块只在宽屏出现 */}
@@ -167,8 +158,8 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* 左栏：今天要做的事 */}
-      <div className="min-w-0">
+      {/* 左栏：今天要做的事，下面两张图 */}
+      <div className="min-w-0 space-y-4">
         <div className="card p-0">
           <Group title="工作" to="/work" linkText="打开看板" empty="没有进行中或到期的任务。">
             {tasks.map((t) => {
@@ -189,18 +180,6 @@ export default function Dashboard() {
             })}
           </Group>
 
-          <Group title="打卡" to="/habits" linkText="查看习惯" empty="还没有设置习惯。">
-            {habits.map((h) => (
-              <li key={h.id} className={ROW}>
-                <CheckDot on={h.checked} onClick={() => toggleHabit(h.id)} label={`${h.name}，${h.checked ? "已打卡" : "未打卡"}`} tone={`${COLORS[h.color].dot} text-white`} />
-                <span className={`min-w-0 flex-1 truncate ${h.checked ? "text-slate-400" : ""}`}>
-                  <span className="mr-2">{h.icon}</span>
-                  {h.name}
-                </span>
-              </li>
-            ))}
-          </Group>
-
           <Group title="生活" to="/life" linkText={life.length > LIFE_LIMIT ? `全部 ${life.length} 项` : "打开清单"} empty="清单里没有今天要做的事。">
             {life.slice(0, LIFE_LIMIT).map((it) => (
               <li key={it.id} className={ROW}>
@@ -212,9 +191,16 @@ export default function Dashboard() {
             ))}
           </Group>
         </div>
+
+        {charts && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TaskChart days={charts.taskDays} status={charts.taskStatus} />
+            <ActivityChart days={charts.activity} />
+          </div>
+        )}
       </div>
 
-      {/* 右栏：各项数字和最近的感悟 */}
+      {/* 右栏：各项数字和最近的随记 */}
       <aside className="mt-4 min-w-0 space-y-4 lg:mt-0">
         {!s ? (
           <div className="card h-56 animate-pulse" />
@@ -229,21 +215,14 @@ export default function Dashboard() {
                   hint={s.tasks.overdue ? `${s.tasks.overdue} 项已逾期` : `已完成 ${s.tasks.done} 项`}
                   warn={s.tasks.overdue > 0}
                 />
-                <Figure to="/learning" label="本周学习" value={(s.learning.weekMinutes / 60).toFixed(1)} unit="小时" hint={`${s.learning.active} 个项目进行中`} />
-                <Figure
-                  to="/habits"
-                  label="今日打卡"
-                  value={habits.length ? `${habitsDone}/${habits.length}` : "–"}
-                  hint={habits.length ? (habitsDone === habits.length ? "全部完成" : `还差 ${habits.length - habitsDone} 个`) : "还没有设置"}
-                />
                 <Figure to="/life" label="生活清单" value={s.life.pending} unit="项" hint={`其中今天 ${s.life.today} 项`} />
                 <Figure to="/life" label="本月结余" value={(s.money.income - s.money.expense).toFixed(0)} unit="元" hint={`支出 ${s.money.expense.toFixed(0)}`} />
-                <Figure to="/journal" label="感悟" value={s.journalCount} unit="篇" hint={s.recentJournals[0] ? `最近 ${s.recentJournals[0].date.slice(5)}` : "还没有开始写"} />
+                <Figure to="/journal" label="随记" value={s.journalCount} unit="篇" hint={s.recentJournals[0] ? `最近 ${s.recentJournals[0].date.slice(5)}` : "还没有开始写"} />
             </section>
 
             <section className="card">
               <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-sm font-medium">最近的感悟</h2>
+                <h2 className="text-sm font-medium">最近的随记</h2>
                 <Link to="/journal" className="text-xs text-slate-500 underline-offset-4 hover:text-ink hover:underline">
                   查看全部
                 </Link>
@@ -271,6 +250,7 @@ export default function Dashboard() {
             </section>
           </>
         )}
+        {charts && <MoodChart moods={charts.moods} />}
       </aside>
     </div>
   );

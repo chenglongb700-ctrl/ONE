@@ -31,6 +31,8 @@
   --dialog-shadow: 0 40px 90px -30px rgb(30 45 80 / 0.55);
   --veil: rgb(22 32 46 / 0.3);
   --wall-scrim: rgb(255 255 255 / 0.12);  /* 盖在自定义壁纸上的一层罩子，让文字更容易看清 */
+  /* 复选框里的钩 */
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
 
   color-scheme: light;
 }
@@ -58,6 +60,7 @@
   --dialog-shadow: 0 40px 90px -30px rgb(0 0 0 / 0.7);
   --veil: rgb(6 10 24 / 0.55);
   --wall-scrim: rgb(8 12 28 / 0.28);
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231a2340' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
 
   color-scheme: dark;
 
@@ -170,10 +173,13 @@
 :root[data-theme="dark"][data-accent="violet"] { --brand: #b9a8ff; }
 
 @theme inline {
-  /* 系统字体：Windows 上是 Segoe UI + 微软雅黑，Mac 上是苹方，不用下载 */
-  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
-  /* 大号数字用系统里专门为大字号设计的那一款 */
-  --font-display: "Segoe UI Variable Display", "Segoe UI", -apple-system, "SF Pro Display", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  /* 全部用系统自带的字体，不用下载。
+     正文：Win11 上是 Segoe UI Variable（小字号那一款）+ 微软雅黑，Mac 上是 SF + 苹方 */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Hiragino Sans GB", "Noto Sans CJK SC", sans-serif;
+  /* 标题和大号数字：系统里专门为大字号设计的那一款 */
+  --font-display: "Segoe UI Variable Display", "Segoe UI", -apple-system, "SF Pro Display", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  /* 等宽（命令、网址、歌词时间轴）：Windows 上是 Cascadia，Mac 上是 SF Mono；里面的中文落到雅黑 / 苹方 */
+  --font-mono: "Cascadia Code", "Cascadia Mono", "SF Mono", ui-monospace, Menlo, Consolas, "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", monospace;
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -188,15 +194,39 @@
   /* 浅色下把两档灰字调深一点，保证在玻璃上读得清 */
   --color-slate-400: #6f7e94;
   --color-slate-500: #55637a;
+
+  /* 字号：中文在 12px 上偏小、看久了累，把最小的两档各放大一点，行距也松一些 */
+  --text-xs: 0.8125rem; /* 13px */
+  --text-xs--line-height: 1.55;
+  --text-sm: 0.90625rem; /* 14.5px */
+  --text-sm--line-height: 1.6;
+  --text-base--line-height: 1.65;
 }
 
 @layer base {
+  /* 始终给滚动条留出位置：从短页面换到长页面时，内容不会因为滚动条出现而横向挪一下 */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply min-h-screen antialiased;
     color: var(--ink);
     background: var(--bg);
     font-family: var(--font-sans);
     font-feature-settings: "tnum" 0;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 标题用大字号那款字体，换行时两行尽量一样长；正文换行时不在最后一行只剩一两个字 */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
 
   /* 壁纸：固定在屏幕上不随页面滚动，内容像浮在天空前面。上传了自己的图时，wallpaper.ts 会把 --wallpaper 换成那张图 */
@@ -233,9 +263,30 @@
     scrollbar-color: color-mix(in oklab, var(--ink) 26%, transparent) transparent;
   }
 
-  input[type="checkbox"],
   input[type="range"] {
     accent-color: var(--brand);
+  }
+
+  /* 复选框：圆角小方块，选中后填上强调色、打一个钩（大小由各处的 size-* 决定） */
+  input[type="checkbox"] {
+    appearance: none;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 1.5px solid color-mix(in oklab, var(--ink) 38%, transparent);
+    background: color-mix(in oklab, var(--ink) 5%, transparent) center / 78% no-repeat;
+    transition: background-color 0.12s, border-color 0.12s;
+  }
+  input[type="checkbox"]:hover {
+    border-color: var(--brand);
+  }
+  input[type="checkbox"]:checked {
+    border-color: var(--brand);
+    background-color: var(--brand);
+    /* 钩的颜色跟主题走：浅色主题是白钩，深色主题是深色钩，和强调色都分得开 */
+    background-image: var(--check);
   }
 }
 
@@ -268,20 +319,36 @@
 }
 /* 可以点开的内容块：悬停时边缘亮起来，不位移 */
 @utility card-link {
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
   &:hover {
-    border-color: color-mix(in oklab, var(--ink) 42%, transparent);
+    border-color: color-mix(in oklab, var(--ink) 38%, transparent);
+    background-color: color-mix(in oklab, var(--glass) calc(var(--glass-fill) + 8%), transparent);
   }
 }
 
 @utility input {
-  @apply w-full rounded-[10px] border border-ink/14 bg-ink/[0.05] px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand/70 focus:bg-ink/[0.08] focus:ring-3 focus:ring-brand/20;
+  @apply w-full rounded-[10px] border border-ink/14 bg-ink/[0.05] px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 hover:border-ink/25 focus:border-brand/70 focus:bg-ink/[0.08] focus:ring-3 focus:ring-brand/20;
+  /* 下拉框：去掉浏览器自带的箭头，换成和文字同色的小三角 */
+  &:is(select) {
+    appearance: none;
+    padding-right: 2rem;
+    background-image:
+      linear-gradient(45deg, transparent 50%, currentColor 50%),
+      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 17px) 54%, calc(100% - 12px) 54%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
+  /* 多行文字框：行距松一点 */
+  &:is(textarea) {
+    line-height: 1.7;
+  }
 }
 @utility btn {
-  @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-medium transition active:scale-[.97] disabled:pointer-events-none disabled:opacity-45;
+  @apply inline-flex cursor-pointer select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 py-2 text-sm font-medium leading-5 transition active:scale-[.97] disabled:pointer-events-none disabled:opacity-45;
 }
 @utility btn-primary {
-  @apply btn bg-ink text-paper hover:bg-ink/85;
+  @apply btn bg-ink text-paper shadow-[0_8px_18px_-10px_var(--ink)] hover:bg-ink/85;
 }
 @utility btn-ghost {
   @apply btn text-slate-600 hover:bg-ink/8 hover:text-ink;
@@ -290,14 +357,14 @@
   @apply btn text-red-600 hover:bg-red-500/15;
 }
 @utility label {
-  @apply mb-1 block text-xs font-medium text-slate-500;
+  @apply mb-1.5 block text-xs font-medium text-slate-500;
 }
 /* 筛选标签：未选是一枚小玻璃，选中是实心 */
 @utility chip {
-  @apply cursor-pointer rounded-full bg-surface px-3 py-1 text-xs text-slate-600 ring-1 ring-line transition hover:text-ink hover:ring-ink/30;
+  @apply cursor-pointer select-none whitespace-nowrap rounded-full bg-surface px-3 py-1 text-xs text-slate-600 ring-1 ring-line transition hover:text-ink hover:ring-ink/30 active:scale-[.97];
 }
 @utility chip-on {
-  @apply cursor-pointer rounded-full bg-ink px-3 py-1 text-xs text-paper ring-1 ring-ink transition;
+  @apply cursor-pointer select-none whitespace-nowrap rounded-full bg-ink px-3 py-1 text-xs text-paper ring-1 ring-ink transition active:scale-[.97];
 }
 /* 小号状态标记（优先级、分类、标签） */
 @utility tag {
@@ -311,6 +378,7 @@
 @keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 
 /* 切换页面时内容淡入 */
+/* 只淡入、不位移：带位移的话每次换页内容都会跳一下 */
 .page-enter { animation: fade-in .2s ease-out; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -38,7 +38,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
             <Wordmark className="text-[17px]" />
           </div>
           <h1 className="mt-7 text-[26px] font-light leading-tight tracking-wide">{isLogin ? "欢迎回来" : "创建账号"}</h1>
-          <p className="mt-1.5 text-sm text-slate-500">{isLogin ? "登录后继续安排今天。" : "工作、学习、习惯和日子，都放在这一个地方。"}</p>
+          <p className="mt-1.5 text-sm text-slate-500">{isLogin ? "登录后继续安排今天。" : "工作、生活和随手记下的想法，都放在这一个地方。"}</p>
         </div>
         <div>
           <label className="label">用户名</label>

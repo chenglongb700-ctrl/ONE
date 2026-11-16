@@ -12,8 +12,6 @@ import { lifeRouter } from "./routes/life.js";
 import { expensesRouter } from "./routes/expenses.js";
 import { journalsRouter } from "./routes/journals.js";
 import { statsRouter } from "./routes/stats.js";
-import { learningRouter, learningLogsRouter } from "./routes/learning.js";
-import { habitsRouter } from "./routes/habits.js";
 import { musicRouter } from "./routes/music.js";
 import { favoritesRouter } from "./routes/favorites.js";
 import { commandsRouter } from "./routes/commands.js";
@@ -22,6 +20,8 @@ import { countdownsRouter } from "./routes/countdowns.js";
 import { dropRouter } from "./routes/drop.js";
 import { newsRouter } from "./routes/news.js";
 import { trendingRouter } from "./routes/trending.js";
+import { summaryRouter } from "./routes/summary.js";
+import { fitnessRouter } from "./routes/fitness.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" })); // 歌词文本可能比默认的 100kb 大
@@ -34,9 +34,6 @@ app.use("/api/tasks", requireAuth, tasksRouter);
 app.use("/api/life", requireAuth, lifeRouter);
 app.use("/api/expenses", requireAuth, expensesRouter);
 app.use("/api/journals", requireAuth, journalsRouter);
-app.use("/api/learning", requireAuth, learningRouter);
-app.use("/api/learning-logs", requireAuth, learningLogsRouter);
-app.use("/api/habits", requireAuth, habitsRouter);
 app.use("/api/music", requireAuth, musicRouter);
 app.use("/api/favorites", requireAuth, favoritesRouter);
 app.use("/api/commands", requireAuth, commandsRouter);
@@ -45,6 +42,8 @@ app.use("/api/countdowns", requireAuth, countdownsRouter);
 app.use("/api/drop", requireAuth, dropRouter);
 app.use("/api/news", requireAuth, newsRouter);
 app.use("/api/trending", requireAuth, trendingRouter);
+app.use("/api/summary", requireAuth, summaryRouter);
+app.use("/api/fitness", requireAuth, fitnessRouter);
 app.use("/api/stats", requireAuth, statsRouter);
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "接口不存在" });

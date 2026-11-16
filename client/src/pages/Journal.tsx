@@ -44,7 +44,7 @@ export default function JournalPage() {
     try {
       if (editing.id) await api.put(`/journals/${editing.id}`, draft);
       else await api.post("/journals", draft);
-      toast.success(editing.id ? "已保存修改" : "已记下这篇感悟");
+      toast.success(editing.id ? "已保存修改" : "已记下这篇随记");
       setEditing(null);
       load();
     } catch (err) {
@@ -53,7 +53,7 @@ export default function JournalPage() {
   };
 
   const remove = async (j: Journal) => {
-    if (!(await confirmDialog({ title: "删除这篇感悟？", message: `「${j.title}」删除后无法恢复。` }))) return;
+    if (!(await confirmDialog({ title: "删除这篇随记？", message: `「${j.title}」删除后无法恢复。` }))) return;
     try {
       await api.del(`/journals/${j.id}`);
       toast.success("已删除");
@@ -76,7 +76,7 @@ export default function JournalPage() {
   return (
     <div>
       <PageHeader
-        title="感悟"
+        title="随记"
         sub="记录想法、心情与成长"
         action={<button className="btn-primary" onClick={() => openEdit()}><Plus className="size-4" /> 写一篇</button>}
       />
@@ -102,7 +102,7 @@ export default function JournalPage() {
       </div>
 
       {shown.length === 0 ? (
-        <div className="card py-12 text-center text-sm text-slate-400">{list.length ? "没有匹配的记录" : "还没有感悟，写下今天的想法吧"}</div>
+        <div className="card py-12 text-center text-sm text-slate-400">{list.length ? "没有匹配的记录" : "还没有随记，写下今天的想法吧"}</div>
       ) : (
         <AnimatedDiv className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((j) => (
@@ -137,7 +137,7 @@ export default function JournalPage() {
       )}
 
       {editing && (
-        <Modal title={editing.id ? "编辑感悟" : "写一篇"} onClose={() => setEditing(null)}>
+        <Modal title={editing.id ? "编辑随记" : "写一篇"} onClose={() => setEditing(null)}>
           <form onSubmit={save} className="space-y-3">
             <div className="grid grid-cols-[1fr_auto] gap-3">
               <div>

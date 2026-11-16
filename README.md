@@ -1,6 +1,6 @@
 # 🌱 ONE · 个人管理
 
-一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 学习 / 习惯 / 生活 / 感悟 / 资讯 / 热门 / 收藏 / 网址 / 命令** 十大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
+一个前后端 + 数据库齐全的个人管理网站，分为 **工作 / 生活 / 健身 / 随记 / 资讯 / GitHub 热门 / 收藏 / 网址 / 命令** 九大板块，底部带一个音乐播放器，支持多用户注册登录，数据按用户隔离。
 
 | 层 | 技术 |
 | --- | --- |
@@ -11,14 +11,14 @@
 
 ## 功能
 
-- **总览**：左边是今天要做的事（进行中和到期的工作、今日打卡、生活清单，都可以直接勾选），右边是日期、各项数字和最近的感悟
+- **总览**：左边是今天要做的事（进行中和到期的工作、生活清单，都可以直接勾选），右边是日期、各项数字和最近的随记；下面还有三张小图：最近 14 天每天完成的任务和各状态的比例、最近 17 周每天的记录热力图（完成任务 + 记账 + 随记）、最近 30 天随记里的心情，鼠标移上去看具体数字
 - **工作**：三列任务看板（待办 / 进行中 / 已完成），优先级、截止日期、逾期标红
-- **学习**：学习项目（书 / 课程 / 技能），进度条、目标日期、累计学习时长；每次学习记一条日志，可同时更新进度；最近 7 天学习柱状图
-- **习惯**：最近 7 天打卡表、连续天数和最长连续、近一年热力图（可看全部或单个习惯）、归档
 - **生活**：生活清单（分类、日期、勾选完成）+ 记账（按月查看、收支汇总、支出分类占比）
-- **感悟**：日记卡片，心情、标签筛选、全文搜索
-- **资讯**：订阅新闻来源（RSS），把最新文章读回来按主题看——内置 13 个中英文来源（AI：量子位、OpenAI、Google AI、Hugging Face、TechCrunch、The Verge、Hacker News；科技：IT之家、爱范儿、少数派、Solidot；开发：InfoQ、开源中国）；按天分组，支持主题筛选、只看未读、搜索；打开页面时自动更新超过半小时没读过的来源；可以自己加来源（填 RSS 地址或网站地址）、停用、删除。不接 AI；每日简报和问答的位置留好了，还没做
-- **热门**：GitHub 每天星标涨得最快的 50 个项目——读 GitHub Trending 的总榜和 15 种主流语言的榜单，合并后按当天新增星标数排名；按领域自动分类（AI、前端、开发工具…，关键词判断，不用 AI），可以按分类或按热度看，按语言筛选、搜索；每天的榜单保留 30 天，能回看，并标出新上榜的项目
+- **健身**：帮自己减脂——填一次身高、年龄、活动量和目标体重，按公式估算基础代谢、每日消耗和建议摄入（不低于安全下限），算出离目标还差多少、大概哪天能到。五个标签：概览（进度、今天的热量、本周运动、体重曲线）、体重（可记腰围和体脂率，一天一条）、饮食（分四餐，内置约 90 种常见食物的热量，也可以手填，记过的会记住）、运动（按类型、时长和体重估算消耗，可手动改）、力量（动作 × 重量 × 次数 × 组数，能看每个动作的重量进步）。配好 AI 模型后可以让它点评最近 7 天的记录。所有数字都是估算，不是医疗建议
+- **随记**：日记卡片，心情、标签筛选、全文搜索
+- **资讯**：订阅新闻来源（RSS），把最新文章读回来按主题看——内置 13 个中英文来源（AI：量子位、OpenAI、Google AI、Hugging Face、TechCrunch、The Verge、Hacker News；科技：IT之家、爱范儿、少数派、Solidot；开发：InfoQ、开源中国）；按天分组，支持主题筛选、只看未读、搜索；打开页面时自动更新超过半小时没读过的来源；可以自己加来源（填 RSS 地址或网站地址）、停用、删除。配好 AI 模型后可以一键生成今天 / 本周 / 本月的中文简报
+- **AI 总结**：按一下按钮，让 AI 写一份每日 / 每周 / 每月的总结——总览页总结自己的记录（任务、收支、随记、生活清单），资讯页总结订阅的文章。写好的总结会存下来，可以重新生成。模型自己选：用的是 OpenAI 兼容接口，DeepSeek、通义千问、豆包、Kimi、智谱、本机 Ollama 都行，配置见下面「AI 模型」。**注意：生成时这段时间的记录会发给你配置的那家模型服务**
+- **GitHub 热门**：GitHub 每天星标涨得最快的 50 个项目——读 GitHub Trending 的总榜和 15 种主流语言的榜单，合并后按当天新增星标数排名；按领域自动分类（AI、前端、开发工具…，关键词判断，不用 AI），可以按分类或按热度看，按语言筛选、搜索；每天的榜单保留 30 天，能回看，并标出新上榜的项目
 - **收藏**：收三种东西——摘录（一段文字，可注明出处）、图片（选择文件或直接粘贴截图，单张最大 10 MB）、视频（贴 B 站、YouTube 等视频页面的链接，自动取标题和封面，B 站和 YouTube 可以直接在页面里播放；或者上传 MP4 / WebM / MOV 文件，单个最大 500 MB）；按分组和标签整理，支持搜索、置顶、按种类筛选（网址不放这里，统一放在「网址」）
 - **网址**：常用网站的导航页——添加网址时服务器自动去对方网站取回 logo 和网站名（取不到就用名称的第一个字，也可以自己上传图标）；按分类分区显示，可以置顶、搜索，点一下在新标签页打开
 - **命令**：Claude Code 斜杠命令速查表——内置 83 条常用命令的中文说明（整理自官方文档），按类别分组；点命令名复制，可以搜索（按 `/` 键直达搜索框）、标为常用、写自己的备注，也可以添加自己的命令；删掉的内置命令能一键恢复
@@ -53,6 +53,18 @@ npm start       # 后端同时托管前端页面，访问 http://localhost:3001
 
 部署时请设置环境变量 `JWT_SECRET` 为一个随机长字符串，可选 `API_PORT`（默认 3001）、`DB_PATH`。
 
+### AI 模型
+
+「AI 总结」需要一个模型。把项目根目录的 `.env.example` 复制一份，改名为 `.env`（不会进 git），填三项，然后重启网站：
+
+```
+AI_BASE_URL=https://api.deepseek.com/v1   # 接口地址（OpenAI 兼容）
+AI_API_KEY=你的密钥                        # 本机 Ollama 可以留空
+AI_MODEL=deepseek-v4-flash                # 模型名
+```
+
+`.env.example` 里有几家常见服务的写法。没配置时功能照常显示，只是点开会提示还没配置。
+
 ## 目录
 
 ```
@@ -61,7 +73,7 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / learning / habits / music / favorites / sites / commands / countdowns / drop / news / trending / avatar / wallpaper / stats
+  routes/         tasks / life / expenses / journals / music / favorites / sites / commands / countdowns / drop / news / trending / summary / fitness / avatar / wallpaper / stats
   images.ts       检查上传的文件是不是真的图片
   pageMeta.ts     安全地访问公网网页（只读开头一段，不访问内网地址）
   commandSeed.ts  内置的斜杠命令清单（每个账号第一次打开「命令」时抄一份）
@@ -70,6 +82,8 @@ server/src/
   feeds.ts        读取并解析一个 RSS / Atom 订阅地址（用 fast-xml-parser），以及从网站地址找出它的订阅地址
   feedSeed.ts     内置的新闻来源清单（每个账号第一次打开「资讯」时抄一份）
   trending.ts     读取 GitHub Trending 网页、挑出项目、按关键词分类（分类的词表在这里）
+  fitnessMath.ts  减脂用的估算公式（基础代谢、建议摄入等）；前端 client/src/fitness/math.ts 是同一份，改的时候两边一起改
+  ai.ts           调用 AI 模型（OpenAI 兼容接口），读取 .env 里的 AI_BASE_URL / AI_API_KEY / AI_MODEL
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -92,9 +106,10 @@ client/src/
 | GET | `/avatar/file` | 读取自己的头像 |
 | POST / DELETE | `/wallpaper` | 上传自定义壁纸（multipart，字段名 `file`，PNG / JPG / WebP，最大 8 MB）/ 恢复默认壁纸 |
 | GET | `/wallpaper/file` | 读取自己的壁纸 |
-| GET / POST | `/tasks` `/life` `/expenses` `/journals` `/learning` `/learning-logs` `/habits` | 列表 / 新建 |
+| GET / POST | `/tasks` `/life` `/expenses` `/journals` | 列表 / 新建 |
 | PUT / DELETE | `/tasks/:id` 等 | 修改（可只传部分字段）/ 删除 |
 | GET | `/stats` | 首页统计 |
+| GET | `/stats/charts` | 总览页三张图的数据 `{taskDays, taskStatus, activity, moods}` |
 | GET / POST | `/music` | 歌单 / 添加音频链接 `{url, title?, artist?}` |
 | POST | `/music/upload` | 上传音频文件（multipart，字段名 `file`） |
 | PUT / DELETE | `/music/:id` | 改歌名、歌手、歌词 / 删除（连同文件） |
@@ -123,8 +138,14 @@ client/src/
 | POST | `/news/feeds/restore` | 补回被删掉的内置来源 |
 | GET | `/trending?date=` | 某一天的 GitHub 热门榜（不传日期给最新的），返回 `{date, fetchedAt, items, dates, categories, stale}` |
 | POST | `/trending/refresh` | 重新读取今天的榜单：默认只在今天还没有或已过 6 小时才读，`{force: true}` 一定读 |
-| GET | `/habits/checks?from=&to=` | 一段时间内的打卡记录 |
-| POST | `/habits/:id/toggle` `{date}` | 打卡 / 取消打卡 |
+| GET / PUT | `/fitness/profile` | 健身的个人资料 `{sex, birth_year, height_cm, activity, target_weight, weekly_loss}`；没填过时 GET 返回 null |
+| GET | `/fitness/overview` | 健身概览要用的汇总：资料、起始和最新体重、体重序列、今天吃的和消耗的、本周运动、最近 14 天摄入、最近 8 周运动分钟 |
+| GET / POST / PUT / DELETE | `/fitness/body` `/fitness/food` `/fitness/workouts` `/fitness/strength` | 体重、饮食、运动、力量训练记录的增删改查；体重同一天再 POST 是更新；饮食可以 `?date=` 只取某一天 |
+| GET | `/fitness/food/mine` | 自己记过的食物（去重，最近用的在前） |
+| GET | `/fitness/strength/progress?exercise=` | 某个动作每个训练日的最大重量 |
+| GET / POST | `/fitness/review` | 读取最近一份 AI 点评 / 现在生成一份（看最近 7 天的记录） |
+| GET | `/summary?kind=&period=` | 某种内容（`personal` 自己的记录 / `news` 资讯）某个时间段（`day` / `week` / `month`）已经生成的 AI 总结，返回 `{configured, model, range, summary}` |
+| POST | `/summary` | 现在生成（或重新生成）一份 `{kind, period}`，要等模型写完 |
 
 ## 下一步
 

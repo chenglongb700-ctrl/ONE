@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { api, type Article, type Feed } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
+import AiSummaryButton from "../components/AiSummary";
 import { hostOf, normalizeUrl } from "../url";
 
 type Page = { items: Article[]; hasMore: boolean; unread: Record<string, number> };
@@ -242,13 +243,14 @@ export default function News() {
         }
       />
 
-      {/* 给以后的 AI 功能留的位置：现在只是说明 */}
-      <div className="card mb-5 flex items-center gap-3 !py-3">
+      {/* AI 简报：按一下，把今天 / 本周 / 本月的文章总结成一份中文简报 */}
+      <div className="card mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 !py-3">
         <Sparkles className="size-5 shrink-0 text-brand" strokeWidth={1.6} />
-        <div className="min-w-0">
-          <div className="text-sm font-medium">AI 简报和问答 · 还没有接上</div>
-          <div className="mt-0.5 text-xs text-slate-500">接上 AI 之后，这里每天会有一段中文简报，还可以就这些新闻提问。</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">AI 资讯简报</div>
+          <div className="mt-0.5 text-xs text-slate-500">让 AI 把今天、本周或本月的文章总结成一份中文简报，英文内容也用中文讲。</div>
         </div>
+        <AiSummaryButton kind="news" label="生成简报" />
       </div>
 
       <div className="mb-5 space-y-3">

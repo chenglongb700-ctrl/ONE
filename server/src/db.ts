@@ -267,6 +267,90 @@ CREATE TABLE IF NOT EXISTS articles (
   UNIQUE (feed_id, guid)
 );
 CREATE INDEX IF NOT EXISTS idx_articles_user ON articles(user_id, published_at DESC);
+
+-- AI 总结：每个账号、每种内容（自己的记录 / 资讯）、每个时间段（某一天 / 某一周 / 某个月）存一份，重新生成就覆盖
+CREATE TABLE IF NOT EXISTS summaries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('personal','news')),
+  period TEXT NOT NULL CHECK (period IN ('day','week','month')),
+  start_date TEXT NOT NULL,           -- 这段时间的第一天 YYYY-MM-DD
+  end_date TEXT NOT NULL,             -- 生成时的最后一天（就是生成那天）
+  content TEXT NOT NULL,
+  model TEXT NOT NULL DEFAULT '',     -- 是哪个模型写的
+  created_at TEXT NOT NULL,           -- 生成时间，ISO 格式
+  UNIQUE (user_id, kind, period, start_date)
+);
+
+-- ---------- 健身（减脂）----------
+-- 个人资料：算基础代谢和建议摄入用，每个账号一行
+CREATE TABLE IF NOT EXISTS fitness_profile (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  sex TEXT NOT NULL CHECK (sex IN ('male','female')),
+  birth_year INTEGER NOT NULL,
+  height_cm REAL NOT NULL,
+  activity TEXT NOT NULL CHECK (activity IN ('sedentary','light','moderate','active')),
+  target_weight REAL NOT NULL,        -- 目标体重 kg
+  weekly_loss REAL NOT NULL           -- 每周想减多少 kg
+);
+-- 体重和围度：一天最多一条
+CREATE TABLE IF NOT EXISTS body_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  weight REAL NOT NULL,               -- kg
+  waist REAL,                         -- 腰围 cm，可以不记
+  body_fat REAL,                      -- 体脂率 %，可以不记
+  note TEXT NOT NULL DEFAULT '',
+  UNIQUE (user_id, date)
+);
+-- 饮食：吃的每样东西一条
+CREATE TABLE IF NOT EXISTS food_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  meal TEXT NOT NULL CHECK (meal IN ('breakfast','lunch','dinner','snack')),
+  name TEXT NOT NULL,
+  amount TEXT NOT NULL DEFAULT '',    -- 分量的文字描述，例如"150 克""1 个"
+  kcal REAL NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_food_user ON food_logs(user_id, date);
+-- 运动：每次运动一条
+CREATE TABLE IF NOT EXISTS workouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  type TEXT NOT NULL,                 -- 跑步、游泳…（文字）
+  minutes INTEGER NOT NULL,
+  kcal REAL NOT NULL DEFAULT 0,       -- 消耗的热量：前端按类型和体重估算，也可以手动填
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_workouts_user ON workouts(user_id, date);
+-- 力量训练：某天做的某个动作一条（重量 × 每组次数 × 组数）
+CREATE TABLE IF NOT EXISTS strength_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  exercise TEXT NOT NULL,
+  weight REAL NOT NULL DEFAULT 0,     -- kg；自重动作填 0
+  reps INTEGER NOT NULL,
+  sets INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_strength_user ON strength_logs(user_id, exercise, date);
+-- AI 点评：看的是最近 7 天；按这 7 天的起始日期存，同一天重新生成就覆盖
+CREATE TABLE IF NOT EXISTS fitness_reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  content TEXT NOT NULL,
+  model TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  UNIQUE (user_id, start_date)
+);
 `);
 ensureColumn("users", "feeds_seeded", "INTEGER NOT NULL DEFAULT 0"); // 这个账号是否已经加过一次内置的新闻来源
 
