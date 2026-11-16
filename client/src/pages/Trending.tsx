@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookmarkPlus, GitFork, RefreshCw, Search, Star } from "lucide-react";
+import { BookmarkPlus, GitFork, Languages, RefreshCw, Search, Star } from "lucide-react";
 import { toast } from "sonner";
 import { api, type TrendingRepo } from "../api";
 import { PageHeader } from "../components/Modal";
@@ -78,6 +78,24 @@ export default function Trending() {
     });
   }, []);
 
+  // AI：把这一天榜单里的英文简介翻成中文
+  const [translating, setTranslating] = useState(false);
+  const untranslated = (data?.items ?? []).filter((r) => r.description && !r.descriptionZh && !/[\u4e00-\u9fff]/.test(r.description)).length;
+  const translate = async () => {
+    if (!data?.date || translating) return;
+    setTranslating(true);
+    try {
+      const got = await api.post<{ translated: number }>("/trending/translate", { date: data.date });
+      await load(data.date);
+      toast.success(`翻译了 ${got.translated} 条简介`);
+    } catch (err) {
+      toast.error((err as Error).message);
+      load(data.date); // 分批翻的，前几批可能已经存上了
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const pickDate = (d: string) => {
     setDate(d);
     load(d);
@@ -95,7 +113,7 @@ export default function Trending() {
 
   const all = data?.items ?? [];
   const kw = q.trim().toLowerCase();
-  const shown = all.filter((r) => (!cat || r.category === cat) && (!lang || r.language === lang) && (!kw || `${r.fullName} ${r.description}`.toLowerCase().includes(kw)));
+  const shown = all.filter((r) => (!cat || r.category === cat) && (!lang || r.language === lang) && (!kw || `${r.fullName} ${r.description} ${r.descriptionZh}`.toLowerCase().includes(kw)));
   const count = (c: string) => all.filter((r) => r.category === c).length;
   const cats = (data?.categories ?? []).filter((c) => count(c) > 0);
   // 语言按出现次数从多到少排
@@ -144,6 +162,12 @@ export default function Trending() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <input className="input pl-9" placeholder="搜索项目名和简介…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="搜索项目" />
             </div>
+            {untranslated > 0 && (
+              <button className="btn-ghost px-2.5 py-1.5 text-xs" onClick={translate} disabled={translating} title="让 AI 把英文的项目简介翻成中文（简介会发给你配置的 AI 模型）">
+                {translating ? <RefreshCw className="size-3.5 animate-spin" /> : <Languages className="size-3.5" />}
+                {translating ? "正在翻译，大约半分钟…" : `翻译 ${untranslated} 条英文简介`}
+              </button>
+            )}
             <select className="input w-auto cursor-pointer" value={lang} onChange={(e) => setLang(e.target.value)} aria-label="编程语言">
               <option value="">全部语言</option>
               {langs.map((l) => (
@@ -230,7 +254,8 @@ export default function Trending() {
                               </span>
                             )}
                           </div>
-                          {r.description && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-600">{r.description}</p>}
+                          {r.descriptionZh && <p className="mt-1 text-sm leading-relaxed">{r.descriptionZh}</p>}
+                          {r.description && <p className={`line-clamp-2 leading-relaxed ${r.descriptionZh ? "mt-0.5 text-xs text-slate-500" : "mt-1 text-sm text-slate-600"}`}>{r.description}</p>}
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                             {view === "rank" && (
                               <button className="tag cursor-pointer hover:text-ink" onClick={() => setCat(r.category)} title="只看这个分类">

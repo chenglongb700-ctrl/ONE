@@ -2,6 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db.js";
 import { CATEGORY_NAMES, fetchTrending } from "../trending.js";
+import { hasChinese, translateBatch } from "../translate.js";
+import { run } from "./assist.js";
 
 /**
  * GitHub 热门：每天一份"今天星标涨得最快的 50 个项目"的榜单，按领域分好类。
@@ -25,13 +27,17 @@ let running: Promise<void> | null = null; // 正在进行的那一次抓取：�
 async function refresh(): Promise<void> {
   const { repos, failed } = await fetchTrending();
   const date = today();
+  // 已经翻译过的简介留着：同一个项目、简介没变，就把译文带到新的榜单里，不用重新翻
+  const known = new Map(
+    (db.prepare("SELECT full_name, description, description_zh FROM trending WHERE description_zh != ''").all() as { full_name: string; description: string; description_zh: string }[]).map((r) => [`${r.full_name}\n${r.description}`, r.description_zh]),
+  );
   db.exec("BEGIN");
   try {
     // 今天的榜单整份换掉（一天里多次刷新，后一次覆盖前一次）
     db.prepare("DELETE FROM trending_days WHERE date = ?").run(date); // trending 里这一天的项目跟着删（ON DELETE CASCADE）
     db.prepare("INSERT INTO trending_days (date, fetched_at, failed_pages) VALUES (?, ?, ?)").run(date, new Date().toISOString(), failed);
-    const insert = db.prepare("INSERT INTO trending (date, rank, full_name, description, language, stars, forks, stars_today, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    repos.forEach((r, i) => insert.run(date, i + 1, r.fullName, r.description, r.language, r.stars, r.forks, r.starsToday, r.category));
+    const insert = db.prepare("INSERT INTO trending (date, rank, full_name, description, language, stars, forks, stars_today, category, description_zh) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    repos.forEach((r, i) => insert.run(date, i + 1, r.fullName, r.description, r.language, r.stars, r.forks, r.starsToday, r.category, known.get(`${r.fullName}\n${r.description}`) ?? ""));
     db.prepare("DELETE FROM trending_days WHERE date < ?").run(new Date(Date.now() - KEEP_DAYS * 86_400_000).toLocaleDateString("sv"));
     db.exec("COMMIT");
   } catch (err) {
@@ -54,7 +60,7 @@ trendingRouter.get("/", (req, res) => {
   const prev = dates.find((d) => d < day.date);
   const before = new Set(prev ? (db.prepare("SELECT full_name FROM trending WHERE date = ?").all(prev) as { full_name: string }[]).map((r) => r.full_name) : []);
   const rows = db
-    .prepare("SELECT rank, full_name AS fullName, description, language, stars, forks, stars_today AS starsToday, category FROM trending WHERE date = ? ORDER BY rank")
+    .prepare("SELECT rank, full_name AS fullName, description, description_zh AS descriptionZh, language, stars, forks, stars_today AS starsToday, category FROM trending WHERE date = ? ORDER BY rank")
     .all(day.date) as { fullName: string }[];
   res.json({
     date: day.date,
@@ -81,3 +87,26 @@ trendingRouter.post("/refresh", async (req, res) => {
     res.status(502).json({ error: `没能读到 GitHub 的热门榜：${(err as Error).message}` });
   }
 });
+
+// 把某一天榜单里的英文项目简介翻成中文（已经翻过的、本来就是中文的、没有简介的跳过）。榜单是所有账号共用的，译文也是
+trendingRouter.post("/translate", (req, res) =>
+  run(req, res, async () => {
+    const { date } = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(req.body);
+    const rows = (db.prepare("SELECT full_name AS fullName, description FROM trending WHERE date = ? AND description != '' AND description_zh = '' ORDER BY rank").all(date) as { fullName: string; description: string }[]).filter(
+      (r) => !hasChinese(r.description),
+    );
+    const update = db.prepare("UPDATE trending SET description_zh = ? WHERE date = ? AND full_name = ?");
+    let translated = 0;
+    // 一次 25 条，分批翻：一批太多模型容易漏条或者对错顺序
+    for (let i = 0; i < rows.length; i += 25) {
+      const batch = rows.slice(i, i + 25);
+      const zh = await translateBatch(
+        batch.map((r) => r.description),
+        "开源项目的一句话简介",
+      );
+      batch.forEach((r, k) => update.run(zh[k], date, r.fullName));
+      translated += batch.length;
+    }
+    return { translated };
+  }),
+);

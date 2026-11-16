@@ -393,3 +393,8 @@ CREATE TABLE IF NOT EXISTS tracks (
 );
 CREATE INDEX IF NOT EXISTS idx_tracks_user ON tracks(user_id);
 `);
+
+// AI 翻译和摘要的结果存在原来的表里，空字符串表示还没有
+ensureColumn("articles", "title_zh", "TEXT NOT NULL DEFAULT ''"); // 标题的中文翻译
+ensureColumn("articles", "ai_summary", "TEXT NOT NULL DEFAULT ''"); // AI 写的中文摘要
+ensureColumn("trending", "description_zh", "TEXT NOT NULL DEFAULT ''"); // 项目简介的中文翻译

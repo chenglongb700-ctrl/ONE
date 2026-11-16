@@ -22,6 +22,7 @@ import { newsRouter } from "./routes/news.js";
 import { trendingRouter } from "./routes/trending.js";
 import { summaryRouter } from "./routes/summary.js";
 import { fitnessRouter } from "./routes/fitness.js";
+import { assistRouter } from "./routes/assist.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" })); // 歌词文本可能比默认的 100kb 大
@@ -44,6 +45,7 @@ app.use("/api/news", requireAuth, newsRouter);
 app.use("/api/trending", requireAuth, trendingRouter);
 app.use("/api/summary", requireAuth, summaryRouter);
 app.use("/api/fitness", requireAuth, fitnessRouter);
+app.use("/api/ai", requireAuth, assistRouter);
 app.use("/api/stats", requireAuth, statsRouter);
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "接口不存在" });

@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import PlayerBar from "../music/PlayerBar";
 import { setThemePref, useTheme, type ThemePref } from "../theme";
 import Avatar from "./Avatar";
+import AiMenu from "./AiMenu";
+import { DATA_CHANGED_EVENT } from "./AiCapture";
 import CountdownCorner from "./Countdown";
 import DropZone from "./DropZone";
 import { Mark, Wordmark } from "./Brand";
@@ -50,6 +52,14 @@ export default function Layout() {
   useEffect(() => {
     navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [location.pathname]);
+
+  // 「记一笔」保存了新记录后会发这个事件：把版本号加一，当前页面整个重建一次，自然就重新读数据了
+  const [dataVersion, setDataVersion] = useState(0);
+  useEffect(() => {
+    const bump = () => setDataVersion((v) => v + 1);
+    window.addEventListener(DATA_CHANGED_EVENT, bump);
+    return () => window.removeEventListener(DATA_CHANGED_EVENT, bump);
+  }, []);
 
   const onLogout = async () => {
     await logout();
@@ -128,10 +138,13 @@ export default function Layout() {
 
       <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col">
         {/* 右上角的倒计时放在换页时会重建的 main 外面：换页面不闪、不重新读数据 */}
-        <div className="px-4 pt-3 md:px-8 md:pt-4">
-          <CountdownCorner />
+        <div className="flex items-center justify-end gap-2 px-4 pt-3 md:px-8 md:pt-4">
+          <div className="min-w-0">
+            <CountdownCorner />
+          </div>
+          <AiMenu />
         </div>
-        <main key={location.pathname} className="page-enter w-full min-w-0 flex-1 p-4 pb-24 pt-2 md:px-8 md:pb-28 md:pt-2">
+        <main key={`${location.pathname}#${dataVersion}`} className="page-enter w-full min-w-0 flex-1 p-4 pb-24 pt-2 md:px-8 md:pb-28 md:pt-2">
           <Outlet />
         </main>
       </div>

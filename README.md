@@ -17,6 +17,11 @@
 - **健身**：帮自己减脂——填一次身高、年龄、活动量和目标体重，按公式估算基础代谢、每日消耗和建议摄入（不低于安全下限），算出离目标还差多少、大概哪天能到。五个标签：概览（进度、今天的热量、本周运动、体重曲线）、体重（可记腰围和体脂率，一天一条）、饮食（分四餐，内置约 90 种常见食物的热量，也可以手填，记过的会记住）、运动（按类型、时长和体重估算消耗，可手动改）、力量（动作 × 重量 × 次数 × 组数，能看每个动作的重量进步）。配好 AI 模型后可以让它点评最近 7 天的记录。所有数字都是估算，不是医疗建议
 - **随记**：日记卡片，心情、标签筛选、全文搜索
 - **资讯**：订阅新闻来源（RSS），把最新文章读回来按主题看——内置 13 个中英文来源（AI：量子位、OpenAI、Google AI、Hugging Face、TechCrunch、The Verge、Hacker News；科技：IT之家、爱范儿、少数派、Solidot；开发：InfoQ、开源中国）；按天分组，支持主题筛选、只看未读、搜索；打开页面时自动更新超过半小时没读过的来源；可以自己加来源（填 RSS 地址或网站地址）、停用、删除。配好 AI 模型后可以一键生成今天 / 本周 / 本月的中文简报
+- **AI 助手**（每个页面右上角的 AI 按钮）：
+  - **记一笔**：用大白话写"早上称了 74.1；中午吃了黄焖鸡花了 28；晚上跑步 30 分钟；明天交报告"，AI 拆成任务、生活清单、记账、随记、体重、饮食、运动、力量训练的待确认记录，逐条可改、可取消，点保存才写入（走各功能自己的接口）
+  - **问我的数据**：问"这个月花最多的是什么""最近体重变化怎么样"，AI 根据最近 90 天的记录回答。只读，对话不保存
+  - 各页面里的小入口：资讯「翻译英文标题」和单篇「AI 摘要」、GitHub 热门「翻译英文简介」、随记「AI 建议标题和标签」、任务「AI 把它拆成几步」、饮食「让 AI 估一下热量」
+  - 原则：AI 只提建议，要写进数据库的都先给你确认；只在你点按钮时调用；模型回来的内容都校验过才用。**调用时相关内容会发给你配置的模型服务**：记一笔发你写的那段话，问我的数据发最近 90 天记录的摘要，翻译和摘要发标题、简介或文章正文
 - **AI 总结**：按一下按钮，让 AI 写一份每日 / 每周 / 每月的总结——总览页总结自己的记录（任务、收支、随记、生活清单），资讯页总结订阅的文章。写好的总结会存下来，可以重新生成。模型自己选：用的是 OpenAI 兼容接口，DeepSeek、通义千问、豆包、Kimi、智谱、本机 Ollama 都行，配置见下面「AI 模型」。**注意：生成时这段时间的记录会发给你配置的那家模型服务**
 - **GitHub 热门**：GitHub 每天星标涨得最快的 50 个项目——读 GitHub Trending 的总榜和 15 种主流语言的榜单，合并后按当天新增星标数排名；按领域自动分类（AI、前端、开发工具…，关键词判断，不用 AI），可以按分类或按热度看，按语言筛选、搜索；每天的榜单保留 30 天，能回看，并标出新上榜的项目
 - **收藏**：收三种东西——摘录（一段文字，可注明出处）、图片（选择文件或直接粘贴截图，单张最大 10 MB）、视频（贴 B 站、YouTube 等视频页面的链接，自动取标题和封面，B 站和 YouTube 可以直接在页面里播放；或者上传 MP4 / WebM / MOV 文件，单个最大 500 MB）；按分组和标签整理，支持搜索、置顶、按种类筛选（网址不放这里，统一放在「网址」）
@@ -73,7 +78,7 @@ server/src/
   db.ts           SQLite 连接与建表
   auth.ts         注册 / 登录 / 登出 / me，requireAuth 中间件
   crud.ts         通用的按用户隔离的 CRUD 路由生成器
-  routes/         tasks / life / expenses / journals / music / favorites / sites / commands / countdowns / drop / news / trending / summary / fitness / avatar / wallpaper / stats
+  routes/         tasks / life / expenses / journals / music / favorites / sites / commands / countdowns / drop / news / trending / summary / fitness / assist / avatar / wallpaper / stats
   images.ts       检查上传的文件是不是真的图片
   pageMeta.ts     安全地访问公网网页（只读开头一段，不访问内网地址）
   commandSeed.ts  内置的斜杠命令清单（每个账号第一次打开「命令」时抄一份）
@@ -83,7 +88,8 @@ server/src/
   feedSeed.ts     内置的新闻来源清单（每个账号第一次打开「资讯」时抄一份）
   trending.ts     读取 GitHub Trending 网页、挑出项目、按关键词分类（分类的词表在这里）
   fitnessMath.ts  减脂用的估算公式（基础代谢、建议摄入等）；前端 client/src/fitness/math.ts 是同一份，改的时候两边一起改
-  ai.ts           调用 AI 模型（OpenAI 兼容接口），读取 .env 里的 AI_BASE_URL / AI_API_KEY / AI_MODEL
+  ai.ts           调用 AI 模型（OpenAI 兼容接口），读取 .env 里的 AI_BASE_URL / AI_API_KEY / AI_MODEL；chatJson 让模型回 JSON 并解析
+  translate.ts    批量翻译成中文、从网页里取正文文字（资讯和热门的 AI 功能用）
 client/src/
   api.ts          fetch 封装与类型定义
   context/        AuthContext 登录状态
@@ -144,6 +150,13 @@ client/src/
 | GET | `/fitness/food/mine` | 自己记过的食物（去重，最近用的在前） |
 | GET | `/fitness/strength/progress?exercise=` | 某个动作每个训练日的最大重量 |
 | GET / POST | `/fitness/review` | 读取最近一份 AI 点评 / 现在生成一份（看最近 7 天的记录） |
+| GET | `/ai/status` | AI 模型配好了没有 `{configured, model}` |
+| POST | `/ai/parse` | 把一段话 `{text}` 拆成待确认的记录 `{items, dropped}`；不写数据库 |
+| POST | `/ai/ask` | 根据最近 90 天的记录回答问题 `{question, history}` → `{answer}` |
+| POST | `/ai/food` `/ai/journal-suggest` `/ai/task-split` | 估一样食物的热量 / 给随记建议标题和标签 / 把任务拆成几步；都只返回建议 |
+| POST | `/news/translate` | 把一批文章 `{ids}`（最多 40）的英文标题翻成中文并保存 |
+| POST | `/news/:id/summary` | 读原文并写一段中文摘要，保存后返回 `{aiSummary}` |
+| POST | `/trending/translate` | 把某一天 `{date}` 榜单里的英文简介翻成中文并保存 |
 | GET | `/summary?kind=&period=` | 某种内容（`personal` 自己的记录 / `news` 资讯）某个时间段（`day` / `week` / `month`）已经生成的 AI 总结，返回 `{configured, model, range, summary}` |
 | POST | `/summary` | 现在生成（或重新生成）一份 `{kind, period}`，要等模型写完 |
 

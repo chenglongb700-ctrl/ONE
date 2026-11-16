@@ -5,6 +5,7 @@ import { api, type Priority, type Task, type TaskStatus, today } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
 import { AnimatedDiv } from "../components/Animated";
+import { TaskSplit } from "../components/AiHelpers";
 
 export const PRIORITY: Record<Priority, { label: string; cls: string }> = {
   high: { label: "高", cls: "bg-red-100 text-red-700" },
@@ -149,6 +150,9 @@ export default function Work() {
             <div>
               <label className="label">描述</label>
               <textarea className="input min-h-24" value={editing.draft.description} onChange={(e) => set("description", e.target.value)} />
+              <div className="mt-2">
+                <TaskSplit title={editing.draft.title} description={editing.draft.description} onAdded={load} />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>

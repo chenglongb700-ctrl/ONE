@@ -75,6 +75,8 @@ export type TrendingRepo = {
   /** owner/repo */
   fullName: string;
   description: string;
+  /** AI 翻的中文简介；还没翻或者本来就是中文时为空字符串 */
+  descriptionZh: string;
   /** 主要的编程语言，可能为空 */
   language: string;
   stars: number;
@@ -94,6 +96,10 @@ export type Article = {
   url: string;
   /** 纯文字摘要，可能为空 */
   summary: string;
+  /** AI 翻的中文标题；还没翻或者本来就是中文时为空字符串 */
+  titleZh: string;
+  /** AI 写的中文摘要；还没写时为空字符串 */
+  aiSummary: string;
   /** 发布时间，ISO 格式（UTC） */
   publishedAt: string;
   read: boolean;

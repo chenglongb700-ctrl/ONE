@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, CheckCheck, CircleAlert, Pencil, Plus, RefreshCw, Rss, Search, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCheck, CircleAlert, Languages, Pencil, Plus, RefreshCw, Rss, Search, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, type Article, type Feed } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
@@ -155,6 +155,44 @@ export default function News() {
   const allTopics = useMemo(() => [...new Set(feeds.map((f) => f.topic).filter(Boolean))], [feeds]);
   const unreadTotal = Object.values(page?.unread ?? {}).reduce((a, b) => a + b, 0);
 
+  // ---------- AI：翻译标题、单篇摘要 ----------
+  const [aiBusy, setAiBusy] = useState<"translate" | number | null>(null); // 正在翻译，或者正在给哪一篇写摘要
+  const patchArticle = (id: number, p: Partial<Article>) => setPage((pg) => pg && { ...pg, items: pg.items.map((x) => (x.id === id ? { ...x, ...p } : x)) });
+  // 当前列表里标题没有中文、也还没翻过的
+  const untranslated = (page?.items ?? []).filter((a) => !a.titleZh && !/[\u4e00-\u9fff]/.test(a.title));
+
+  const translate = async () => {
+    if (aiBusy !== null || untranslated.length === 0) return;
+    setAiBusy("translate");
+    try {
+      let done = 0;
+      // 一次最多 40 条，多了分几批
+      for (let i = 0; i < untranslated.length; i += 40) {
+        const got = await api.post<{ items: { id: number; titleZh: string }[] }>("/news/translate", { ids: untranslated.slice(i, i + 40).map((a) => a.id) });
+        got.items.forEach((t) => patchArticle(t.id, { titleZh: t.titleZh }));
+        done += got.items.length;
+      }
+      toast.success(`翻译了 ${done} 个标题`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
+  const summarize = async (a: Article) => {
+    if (aiBusy !== null) return;
+    setAiBusy(a.id);
+    try {
+      const got = await api.post<{ aiSummary: string }>(`/news/${a.id}/summary`);
+      patchArticle(a.id, { aiSummary: got.aiSummary });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
   const closeManage = () => {
     setManaging(false);
     setDraft(null);
@@ -263,11 +301,19 @@ export default function News() {
             <input type="checkbox" className="size-4" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
             只看未读
           </label>
-          {unreadTotal > 0 && (
-            <button className="btn-ghost ml-auto px-2.5 py-1 text-xs" onClick={readAll}>
-              <CheckCheck className="size-3.5" /> 全部已读
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-1">
+            {untranslated.length > 0 && (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={translate} disabled={aiBusy !== null} title="让 AI 把下面列表里的英文标题翻成中文（标题会发给你配置的 AI 模型）">
+                {aiBusy === "translate" ? <RefreshCw className="size-3.5 animate-spin" /> : <Languages className="size-3.5" />}
+                {aiBusy === "translate" ? "正在翻译…" : `翻译 ${untranslated.length} 个英文标题`}
+              </button>
+            )}
+            {unreadTotal > 0 && (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={readAll}>
+                <CheckCheck className="size-3.5" /> 全部已读
+              </button>
+            )}
+          </div>
         </div>
         {topics.length > 1 && (
           <div className="flex flex-wrap gap-2">
@@ -341,6 +387,7 @@ export default function News() {
                       >
                         {a.title}
                       </a>
+                      {a.titleZh && <p className="mt-0.5 text-sm leading-snug text-slate-600">{a.titleZh}</p>}
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
                         <span>{a.feed}</span>
                         <span aria-hidden>·</span>
@@ -348,8 +395,26 @@ export default function News() {
                           {timeLabel(a.publishedAt)}
                         </time>
                         {topic === null && a.topic && <span className="tag">{a.topic}</span>}
+                        {!a.aiSummary && (
+                          <button
+                            className="inline-flex cursor-pointer items-center gap-1 underline-offset-4 hover:text-ink hover:underline disabled:cursor-default disabled:no-underline md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                            onClick={() => summarize(a)}
+                            disabled={aiBusy !== null}
+                            title="让 AI 读原文并写一段中文摘要（文章内容会发给你配置的 AI 模型）"
+                          >
+                            {aiBusy === a.id ? <RefreshCw className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                            {aiBusy === a.id ? "正在读原文…" : "AI 摘要"}
+                          </button>
+                        )}
                       </div>
-                      {a.summary && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-600">{a.summary}</p>}
+                      {a.aiSummary ? (
+                        <p className="mt-1.5 rounded-xl bg-brand/10 px-3 py-2 text-sm leading-relaxed">
+                          <Sparkles className="mr-1.5 inline size-3.5 -translate-y-px text-brand" aria-label="AI 摘要" />
+                          {a.aiSummary}
+                        </p>
+                      ) : (
+                        a.summary && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-600">{a.summary}</p>
+                      )}
                     </div>
                   </li>
                 ))}

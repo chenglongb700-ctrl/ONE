@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, today, type FoodLog, type Meal } from "../api";
 import Modal, { ErrorText } from "../components/Modal";
+import { FoodEstimate } from "../components/AiHelpers";
 import { BarChart, ChartCard, md } from "./charts";
 import type { TabProps } from "./data";
 import { FOODS, foodAmount, foodKcal, type Food } from "./foods";
@@ -148,6 +149,9 @@ function AddDialog({ date, meal: meal0, mine, onClose, onAdded }: { date: string
                 热量（千卡）
               </label>
               <input id="fd-kcal" className="input" type="number" inputMode="numeric" min="0" value={manual.kcal} onChange={(e) => setManual({ ...manual, kcal: e.target.value })} />
+            </div>
+            <div className="sm:col-span-3">
+              <FoodEstimate text={manual.name} onResult={(r) => setManual({ name: r.name, amount: r.amount, kcal: String(r.kcal) })} />
             </div>
           </div>
         )}

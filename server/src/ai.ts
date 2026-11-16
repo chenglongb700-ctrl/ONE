@@ -38,8 +38,32 @@ export function aiStatus(): { configured: boolean; model: string } {
 /** 能直接讲给用户看的错误（中文） */
 export class AiError extends Error {}
 
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
 /** 给模型一段系统提示和一段用户内容，拿回它写的文字 */
-export async function chat(system: string, user: string): Promise<{ text: string; model: string }> {
+export function chat(system: string, user: string, temperature = 0.5): Promise<{ text: string; model: string }> {
+  return chatMessages(system, [{ role: "user", content: user }], temperature);
+}
+
+/**
+ * 让模型只回 JSON，并把它解析出来。
+ * 各家对"强制输出 JSON"的参数支持不一样，所以这里不用那个参数，只在提示词里要求，
+ * 拿到文字后去掉可能包在外面的 ```代码围栏```，从第一个 { 或 [ 截到最后一个 } 或 ] 再解析。
+ */
+export async function chatJson(system: string, user: string): Promise<unknown> {
+  const { text } = await chat(`${system}\n\n只输出 JSON 本身，不要任何解释，不要用代码块包起来。`, user, 0.2);
+  const start = text.search(/[{[]/);
+  const end = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]"));
+  if (start < 0 || end <= start) throw new AiError("AI 没有按要求的格式回答，再试一次");
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    throw new AiError("AI 回答的格式有问题，没法读取，再试一次");
+  }
+}
+
+/** 多轮对话：一段系统提示，加上按顺序排好的几轮用户和 AI 的话（最后一条是用户的） */
+export async function chatMessages(system: string, messages: ChatMessage[], temperature = 0.5): Promise<{ text: string; model: string }> {
   const c = config();
   if (!aiStatus().configured) throw new AiError("还没有配置 AI 模型");
 
@@ -50,11 +74,8 @@ export async function chat(system: string, user: string): Promise<{ text: string
       headers: { "Content-Type": "application/json", ...(c.apiKey ? { Authorization: `Bearer ${c.apiKey}` } : {}) },
       body: JSON.stringify({
         model: c.model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        temperature: 0.5,
+        messages: [{ role: "system", content: system }, ...messages],
+        temperature,
         stream: false,
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),

@@ -5,6 +5,7 @@ import { api, type Journal, today } from "../api";
 import Modal, { ErrorText, PageHeader } from "../components/Modal";
 import { confirmDialog } from "../components/Confirm";
 import { AnimatedDiv } from "../components/Animated";
+import { JournalSuggest } from "../components/AiHelpers";
 
 const MOODS = ["😊", "😄", "🥰", "😌", "😐", "🤔", "😔", "😢", "😤", "😴"];
 
@@ -167,6 +168,9 @@ export default function JournalPage() {
             <div>
               <label className="label">内容</label>
               <textarea className="input min-h-48" value={editing.draft.content} onChange={(e) => set("content", e.target.value)} placeholder="今天有什么想说的…" />
+              <div className="mt-2">
+                <JournalSuggest content={editing.draft.content} onApply={(title, tags) => setEditing((x) => x && { ...x, draft: { ...x.draft, title, tags: tags.join(", ") } })} />
+              </div>
             </div>
             <div>
               <label className="label">标签（用逗号或空格分隔）</label>
