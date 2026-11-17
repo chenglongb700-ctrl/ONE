@@ -4,16 +4,19 @@ import { api } from "../api";
 import { AiSetupHint } from "./AiCapture";
 import { SummaryText } from "./AiSummary";
 import Modal from "./Modal";
+import type { PageAi } from "./pageAi";
 
 /**
- * 「问我的数据」：问关于自己记录的问题，AI 根据最近 90 天的记录回答。
- * 只读——它改不了任何数据。对话只留在这个窗口里，关掉就没了。
+ * AI 问答窗口，两种用法：
+ *   不传 page：「问我的数据」——根据最近 90 天所有记录的概要回答
+ *   传 page：这个页面自己的助手——只看这个页面的内容回答，带几个针对这个页面的一键提问
+ * 都是只读——它改不了任何数据。对话只留在这个窗口里，关掉就没了。
  */
 type Turn = { role: "user" | "assistant"; content: string };
 
 const EXAMPLES = ["我这个月花得最多的是什么？", "最近两周体重变化怎么样？", "我有哪些任务逾期了？", "这周运动了几次？"];
 
-export default function AiAsk({ onClose }: { onClose: () => void }) {
+export default function AiAsk({ onClose, page }: { onClose: () => void; page?: PageAi }) {
   const [status, setStatus] = useState<{ configured: boolean; model: string } | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [q, setQ] = useState("");
@@ -37,7 +40,7 @@ export default function AiAsk({ onClose }: { onClose: () => void }) {
     setTurns((t) => [...t, { role: "user", content: question }]);
     setBusy(true);
     try {
-      const got = await api.post<{ answer: string }>("/ai/ask", { question, history });
+      const got = page ? await api.post<{ answer: string }>("/ai/page", { page: page.key, question, history }) : await api.post<{ answer: string }>("/ai/ask", { question, history });
       setTurns((t) => [...t, { role: "assistant", content: got.answer }]);
     } catch (err) {
       setError((err as Error).message);
@@ -54,7 +57,7 @@ export default function AiAsk({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="问我的数据" onClose={onClose} wide>
+    <Modal title={page ? `${page.name}助手` : "问我的数据"} onClose={onClose} wide>
       {status === null ? (
         <div className="h-40 animate-pulse rounded-2xl bg-ink/5" />
       ) : !status.configured ? (
@@ -64,16 +67,16 @@ export default function AiAsk({ onClose }: { onClose: () => void }) {
           <div className="max-h-[52vh] min-h-40 space-y-3 overflow-y-auto pr-1">
             {turns.length === 0 && (
               <div className="rounded-2xl bg-ink/5 px-4 py-4 text-sm leading-7 text-slate-600">
-                <p>可以问关于你自己记录的问题，比如：</p>
+                <p>{page ? `针对「${page.name}」这个页面的内容提问，比如：` : "可以问关于你自己记录的问题，比如："}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {EXAMPLES.map((x) => (
+                  {(page?.examples ?? EXAMPLES).map((x) => (
                     <button key={x} className="chip" onClick={() => ask(x)}>
                       {x}
                     </button>
                   ))}
                 </div>
                 <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                  每次提问时，你最近 90 天的记录（任务、清单、收支、随记、健身）会整理成一份材料发给 {status.model}。它只能看、不能改；数字是它读材料后算的，偶尔会算错，重要的数字以各页面自己的统计为准。
+                  每次提问时，{page ? page.sends : "你最近 90 天的记录（任务、清单、收支、随记、健身）"}会整理成一份材料发给 {status.model}。它只能看、不能改；数字是它读材料后算的，偶尔会算错，重要的数字以页面自己的统计为准。
                 </p>
               </div>
             )}
@@ -90,7 +93,7 @@ export default function AiAsk({ onClose }: { onClose: () => void }) {
             )}
             {busy && (
               <div className="flex w-fit items-center gap-2 rounded-2xl rounded-bl-md bg-ink/5 px-4 py-3 text-sm text-slate-500">
-                <RefreshCw className="size-3.5 animate-spin" /> 正在翻你的记录…
+                <RefreshCw className="size-3.5 animate-spin" /> {page ? "正在看这个页面的内容…" : "正在翻你的记录…"}
               </div>
             )}
             <div ref={end} />
