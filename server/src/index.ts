@@ -1,3 +1,4 @@
+import "./env.js"; // 必须第一个：先读 .env、准备好登录密钥，其他模块才能用
 import express, { type ErrorRequestHandler } from "express";
 import cookieParser from "cookie-parser";
 import { existsSync } from "node:fs";
@@ -69,4 +70,6 @@ app.use(onError);
 
 // 用 API_PORT 而不是 PORT，避免和前端开发服务器争用同一个环境变量
 const port = Number(process.env.API_PORT ?? 3001);
-app.listen(port, () => console.log(`API server running at http://localhost:${port}`));
+// 默认只让本机访问：同一个 Wi-Fi 里的其他设备连不上。真要部署到外网时再用 API_HOST 改（比如 0.0.0.0）
+const host = process.env.API_HOST?.trim() || "127.0.0.1";
+app.listen(port, host, () => console.log(`API server running at http://${host}:${port}`));

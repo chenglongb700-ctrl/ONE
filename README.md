@@ -57,11 +57,12 @@ npm run build   # 构建前端到 client/dist
 npm start       # 后端同时托管前端页面，访问 http://localhost:3001
 ```
 
-部署时请设置环境变量 `JWT_SECRET` 为一个随机长字符串，可选 `API_PORT`（默认 3001）、`DB_PATH`。
+登录密钥 `JWT_SECRET`：第一次启动时自动随机生成，写进项目根目录的 `.env`（不进 git），不用手动设；改掉它所有人都要重新登录。
+后端默认只监听本机（127.0.0.1），同一个网络里的其他设备访问不了。要部署到外网时设置 `API_HOST`（例如 `0.0.0.0`），并先确认注册和登录的安全措施。其他可选：`API_PORT`（默认 3001）、`DB_PATH`。
 
 ### AI 模型
 
-「AI 总结」需要一个模型。把项目根目录的 `.env.example` 复制一份，改名为 `.env`（不会进 git），填三项，然后重启网站：
+「AI 总结」需要一个模型。在项目根目录的 `.env` 里（网站第一次启动时已经自动建好，不会进 git）加上三项，然后重启网站。不要用 `.env.example` 整个覆盖 `.env`，那样会丢掉里面的登录密钥：
 
 ```
 AI_BASE_URL=https://api.deepseek.com/v1   # 接口地址（OpenAI 兼容）
@@ -89,6 +90,7 @@ server/src/
   feedSeed.ts     内置的新闻来源清单（每个账号第一次打开「资讯」时抄一份）
   trending.ts     读取 GitHub Trending 网页、挑出项目、按关键词分类（分类的词表在这里）
   fitnessMath.ts  减脂用的估算公式（基础代谢、建议摄入等）；前端 client/src/fitness/math.ts 是同一份，改的时候两边一起改
+  env.ts          读取 .env；没有登录密钥 JWT_SECRET 时随机生成一个写进去
   ai.ts           调用 AI 模型（OpenAI 兼容接口），读取 .env 里的 AI_BASE_URL / AI_API_KEY / AI_MODEL；chatJson 让模型回 JSON 并解析
   translate.ts    批量翻译成中文、从网页里取正文文字（资讯和热门的 AI 功能用）
   aiMaterial.ts   把记录整理成给 AI 看的文字材料：问我的数据用的总概要，和每个页面助手各自的材料与要求

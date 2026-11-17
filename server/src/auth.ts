@@ -3,8 +3,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { db } from "./db.js";
+import "./env.js";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-me";
+// 登录凭证的签名密钥：来自 .env，第一次启动时由 env.ts 自动生成（不能写死在公开的代码里）
+const JWT_SECRET = process.env.JWT_SECRET!;
 const COOKIE = "token";
 const COOKIE_OPTS = { httpOnly: true, sameSite: "lax" as const, maxAge: 7 * 24 * 3600 * 1000 };
 

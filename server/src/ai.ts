@@ -1,6 +1,4 @@
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import "./env.js"; // 读 .env
 
 /**
  * 调用 AI 模型。
@@ -12,14 +10,6 @@ import { fileURLToPath } from "node:url";
  *   AI_API_KEY   密钥（本机的 Ollama 不需要，可以不填）
  *   AI_MODEL     模型名，例如 deepseek-chat
  */
-const envFile = resolve(dirname(fileURLToPath(import.meta.url)), "../../.env");
-if (existsSync(envFile)) {
-  try {
-    process.loadEnvFile(envFile); // 已经在系统环境变量里设过的值不会被覆盖
-  } catch (err) {
-    console.warn(`.env 文件读取失败：${(err as Error).message}`);
-  }
-}
 
 const TIMEOUT_MS = 120_000; // 写一篇月度总结可能要一分钟左右
 
