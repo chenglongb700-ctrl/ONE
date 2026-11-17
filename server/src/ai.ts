@@ -57,9 +57,8 @@ export async function chatMessages(system: string, messages: ChatMessage[], temp
   const c = config();
   if (!aiStatus().configured) throw new AiError("还没有配置 AI 模型");
 
-  let res: Response;
-  try {
-    res = await fetch(`${c.baseUrl}/chat/completions`, {
+  const send = () =>
+    fetch(`${c.baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(c.apiKey ? { Authorization: `Bearer ${c.apiKey}` } : {}) },
       body: JSON.stringify({
@@ -70,9 +69,20 @@ export async function chatMessages(system: string, messages: ChatMessage[], temp
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
+  const timedOut = (err: unknown) => ["TimeoutError", "AbortError"].includes((err as Error).name);
+
+  let res: Response;
+  try {
+    try {
+      res = await send();
+    } catch (err) {
+      // 连接偶尔会被对方断开（实测 DeepSeek 隔一阵会出现一次）：等一秒自动再试一次。超时的不重试，免得用户等四分钟
+      if (timedOut(err)) throw err;
+      await new Promise((r) => setTimeout(r, 1000));
+      res = await send();
+    }
   } catch (err) {
-    const name = (err as Error).name;
-    throw new AiError(name === "TimeoutError" || name === "AbortError" ? "AI 模型两分钟没有回应，稍后再试" : `连不上 AI 模型的接口（${c.baseUrl}）`);
+    throw new AiError(timedOut(err) ? "AI 模型两分钟没有回应，稍后再试" : `连不上 AI 模型的接口（${c.baseUrl}）`);
   }
 
   const body = (await res.json().catch(() => null)) as { choices?: { message?: { content?: unknown } }[]; error?: { message?: unknown } | string } | null;

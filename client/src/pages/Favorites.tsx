@@ -334,10 +334,10 @@ export default function Favorites() {
           )}
         </div>
       ) : (
-        // 几种卡片高度不一样，用多栏排版让它们像瀑布流一样上下紧挨着
-        <div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
+        // 整齐的网格：同一行的卡片一样高；图片和视频的预览都是 16:9，标签那一行贴在卡片底部
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((f) => (
-            <article key={f.id} className="card group mb-4 break-inside-avoid">
+            <article key={f.id} className="card group flex flex-col">
               {f.kind === "text" && (
                 <>
                   <button className="block w-full cursor-pointer text-left" onClick={() => view(f)} title="查看全文">
@@ -360,8 +360,9 @@ export default function Favorites() {
 
               {f.kind === "image" && f.image && (
                 <>
-                  <button className="block w-full cursor-zoom-in" onClick={() => view(f)} title="查看大图">
-                    <img src={f.image} alt={f.title} loading="lazy" className="max-h-96 w-full rounded-[10px] bg-ink/6 object-cover" />
+                  <button className="block aspect-video w-full cursor-zoom-in overflow-hidden rounded-[10px] bg-ink/6" onClick={() => view(f)} title="查看大图">
+                    {/* 和视频一样裁成 16:9，点开看完整的图 */}
+                    <img src={f.image} alt={f.title} loading="lazy" className="size-full object-cover" />
                   </button>
                   {f.title && <h3 className="mt-2.5 truncate text-sm font-medium">{f.title}</h3>}
                   {f.content && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{f.content}</p>}
@@ -399,7 +400,7 @@ export default function Favorites() {
                 </>
               )}
 
-              <div className="mt-3 flex items-center gap-1">
+              <div className="mt-auto flex items-center gap-1 pt-3">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-1">
                   {f.platform && (
                     <button className="cursor-pointer rounded-md bg-brand/15 px-1.5 py-0.5 text-xs text-brand hover:bg-brand/25" onClick={() => setQ(f.platform)} title="只看来自这里的">
