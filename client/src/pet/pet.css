@@ -1,0 +1,71 @@
+/* 桌宠的动画。只动 transform 和 opacity；系统设了"减少动态效果"时 index.css 会把动画都关掉 */
+
+.pet-figure { width: 100%; height: 100%; }
+.pet-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* 呼吸：一直在轻轻地一扁一圆，原点在底部中间（像坐在地上） */
+.pet-body { transform-box: view-box; transform-origin: 60px 105px; animation: pet-breathe 2.8s ease-in-out infinite; }
+.pet-sleeping .pet-body { animation-duration: 4.4s; }
+@keyframes pet-breathe { 50% { transform: scale(1.035, .965); } }
+
+/* 眨眼：大部分时间睁着，偶尔一下 */
+.pet-eyes { transform-box: fill-box; transform-origin: center; animation: pet-blink 5s infinite; }
+@keyframes pet-blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+
+/* 眼睛跟着鼠标看 */
+.pet-look { transform: translate(var(--look-x, 0px), var(--look-y, 0px)); transition: transform .18s ease-out; }
+
+/* 影子 */
+.pet-shadow { transform-box: fill-box; transform-origin: center; }
+
+/* 头上的小芽轻轻摇，小星星闪 */
+.pet-sprout { transform-box: view-box; transform-origin: 60px 27px; animation: pet-sway 3.6s ease-in-out infinite; }
+@keyframes pet-sway { 50% { transform: rotate(6deg); } }
+.pet-star { transform-box: fill-box; transform-origin: center; animation: pet-twinkle 2.4s ease-in-out infinite; }
+@keyframes pet-twinkle { 50% { transform: scale(.8) rotate(18deg); opacity: .75; } }
+
+/* 在想：三个点一个接一个亮 */
+.pet-dots circle { animation: pet-dot 1.2s ease-in-out infinite; opacity: .25; }
+.pet-dots circle:nth-child(2) { animation-delay: .2s; }
+.pet-dots circle:nth-child(3) { animation-delay: .4s; }
+@keyframes pet-dot { 40% { opacity: 1; } }
+
+/* 睡觉：z 往上飘 */
+.pet-zzz text { animation: pet-z 2.6s ease-in-out infinite; opacity: 0; }
+.pet-zzz text:nth-child(2) { animation-delay: .5s; }
+.pet-zzz text:nth-child(3) { animation-delay: 1s; }
+@keyframes pet-z { 20% { opacity: .9; } 100% { opacity: 0; transform: translate(4px, -10px); } }
+
+/* ---- 一次性的动作（Pet.tsx 加上对应的 class，放完就拿掉） ---- */
+.pet-figure { transform-origin: 50% 90%; }
+/* 蹦一下：先压扁、弹起、落地再压扁 */
+.pet-anim-hop { animation: pet-hop .7s cubic-bezier(.3, .7, .4, 1); }
+@keyframes pet-hop {
+  15% { transform: scale(1.12, .86); }
+  45% { transform: translateY(-22px) scale(.92, 1.1); }
+  75% { transform: scale(1.1, .9); }
+  100% { transform: none; }
+}
+/* 被戳：果冻一样晃 */
+.pet-anim-jiggle { animation: pet-jiggle .6s ease-out; }
+@keyframes pet-jiggle {
+  20% { transform: scale(1.14, .88); }
+  40% { transform: scale(.92, 1.08); }
+  60% { transform: scale(1.05, .96); }
+  80% { transform: scale(.98, 1.02); }
+}
+/* 左右张望 */
+.pet-anim-look .pet-look { animation: pet-look 1.6s ease-in-out; }
+@keyframes pet-look { 25% { transform: translate(-3px, 0); } 65% { transform: translate(3px, 0); } }
+/* 左右晃一晃 */
+.pet-anim-sway { animation: pet-wobble 1.2s ease-in-out; }
+@keyframes pet-wobble { 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+/* 刚被放下 */
+.pet-anim-land { animation: pet-land .45s ease-out; }
+@keyframes pet-land { 30% { transform: scale(1.15, .85); } }
+/* 被拖着：拉长一点 */
+.pet-dragging .pet-figure { transform: scale(.92, 1.1); transition: transform .12s; }
+
+/* 气泡和菜单出现 */
+.pet-pop { animation: pet-pop .2s cubic-bezier(.2, .8, .3, 1); }
+@keyframes pet-pop { from { opacity: 0; transform: translateY(6px) scale(.96); } }

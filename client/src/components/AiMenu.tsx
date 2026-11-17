@@ -10,10 +10,24 @@ import { pageAiFor } from "./pageAi";
  * 每个页面右上角的 AI 按钮。点开第一项是当前页面自己的助手（在哪个页面就是哪个页面的），
  * 下面是哪个页面都一样的「记一笔」和「问我的数据」。
  */
+/** 别的地方（比如桌宠）想打开某个 AI 窗口时发这个事件，detail 是要打开哪一个 */
+export const OPEN_AI_EVENT = "one:open-ai";
+export type OpenAi = "page" | "capture" | "ask";
+
 export default function AiMenu() {
   const [open, setOpen] = useState(false);
-  const [dialog, setDialog] = useState<"page" | "capture" | "ask" | null>(null);
+  const [dialog, setDialog] = useState<OpenAi | null>(null);
   const page = pageAiFor(useLocation().pathname);
+
+  useEffect(() => {
+    const open = (e: Event) => {
+      const which = (e as CustomEvent<OpenAi>).detail;
+      setOpen(false);
+      setDialog(which === "page" && !page ? "ask" : which);
+    };
+    window.addEventListener(OPEN_AI_EVENT, open);
+    return () => window.removeEventListener(OPEN_AI_EVENT, open);
+  }, [page]);
   const box = useRef<HTMLDivElement>(null);
 
   // 点菜单外面、按 Esc 都收起菜单
@@ -29,7 +43,7 @@ export default function AiMenu() {
     };
   }, [open]);
 
-  const pick = (d: "page" | "capture" | "ask") => {
+  const pick = (d: OpenAi) => {
     setOpen(false);
     setDialog(d);
   };

@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Check, ImageUp, LogOut, Moon, RotateCcw, Sun, SunMoon, type LucideIcon } from "lucide-react";
+import { Check, ImageUp, LogOut, Moon, Pipette, RotateCcw, Sun, SunMoon, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { api, uploadFile, type User } from "../api";
 import Avatar, { squareAvatar } from "./Avatar";
@@ -7,6 +7,7 @@ import Modal from "./Modal";
 import { useAuth } from "../context/AuthContext";
 import { useMusic } from "../music/MusicContext";
 import { shrinkWallpaper } from "../wallpaper";
+import { PET_COLORS, PET_SCALE, petPalette, setPetPrefs, usePetPrefs, type PetColor } from "../pet/prefs";
 import { ACCENTS, GLASS_RANGE, setAccent, setGlass, setThemePref, useTheme, type Accent, type ThemePref } from "../theme";
 
 const THEME_OPTIONS: { key: ThemePref; label: string; icon: LucideIcon }[] = [
@@ -203,6 +204,8 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
           </div>
         </Section>
 
+        <PetSection />
+
         <Section title="音乐">
           <label className="flex cursor-pointer items-start gap-3 text-sm">
             <input type="checkbox" className="mt-0.5 size-4" checked={music.autoplay} onChange={(e) => music.setAutoplay(e.target.checked)} />
@@ -240,5 +243,91 @@ export default function Settings({ onClose, onLogout }: { onClose: () => void; o
         </Section>
       </div>
     </Modal>
+  );
+}
+
+/** 桌宠：显不显示、名字、颜色、位置（都存在这台电脑的浏览器里） */
+function PetSection() {
+  const pet = usePetPrefs();
+  const custom = petPalette({ color: "custom", customColor: pet.customColor });
+  return (
+    <Section title="桌宠">
+      <label className="flex cursor-pointer items-start gap-3 text-sm">
+        <input type="checkbox" className="mt-0.5 size-4" checked={pet.visible} onChange={(e) => setPetPrefs({ visible: e.target.checked })} />
+        <span>
+          显示果冻团子
+          <span className="mt-0.5 block text-xs text-slate-500">待在右下角，AI 干活时会告诉你进度，也会提醒你今天的事；点它有菜单，按住可以拖动</span>
+        </span>
+      </label>
+      {pet.visible && (
+        <>
+          <Row label="名字">
+            <input className="input w-36" maxLength={8} value={pet.name} onChange={(e) => setPetPrefs({ name: e.target.value })} onBlur={(e) => !e.target.value.trim() && setPetPrefs({ name: "团团" })} aria-label="桌宠的名字" />
+          </Row>
+          <Row label="颜色">
+            <div className="flex max-w-[11.5rem] flex-wrap justify-end gap-2" role="radiogroup" aria-label="桌宠的颜色">
+              {(Object.keys(PET_COLORS) as Exclude<PetColor, "custom">[]).map((k) => (
+                <button
+                  key={k}
+                  role="radio"
+                  aria-checked={pet.color === k}
+                  aria-label={PET_COLORS[k].name}
+                  title={PET_COLORS[k].name}
+                  onClick={() => setPetPrefs({ color: k })}
+                  style={{ background: `radial-gradient(circle at 38% 30%, ${PET_COLORS[k].light}, ${PET_COLORS[k].deep})` }}
+                  className={`grid size-7 cursor-pointer place-items-center rounded-full text-white transition active:scale-90 ${pet.color === k ? "ring-2 ring-ink ring-offset-2 ring-offset-transparent" : "opacity-80 hover:opacity-100"}`}
+                >
+                  {pet.color === k && <Check className="size-4" strokeWidth={3} />}
+                </button>
+              ))}
+              {/* 自己挑颜色：系统的取色器盖在圆点上，点圆点就弹出来 */}
+              <label
+                role="radio"
+                aria-checked={pet.color === "custom"}
+                title="自己挑颜色"
+                style={{ background: pet.color === "custom" ? `radial-gradient(circle at 38% 30%, ${custom.light}, ${custom.deep})` : "conic-gradient(#ff6b6b, #ffd45e, #6fd08f, #4a95e8, #8b6cf0, #ff6b9c, #ff6b6b)" }}
+                className={`relative grid size-7 cursor-pointer place-items-center rounded-full text-white transition active:scale-90 ${pet.color === "custom" ? "ring-2 ring-ink ring-offset-2 ring-offset-transparent" : "opacity-80 hover:opacity-100"}`}
+              >
+                {pet.color === "custom" ? <Check className="size-4" strokeWidth={3} /> : <Pipette className="size-3.5 drop-shadow" />}
+                <input
+                  type="color"
+                  className="absolute inset-0 size-full cursor-pointer opacity-0"
+                  value={pet.customColor}
+                  onClick={() => pet.color !== "custom" && setPetPrefs({ color: "custom" })}
+                  onChange={(e) => setPetPrefs({ color: "custom", customColor: e.target.value })}
+                  aria-label="自己挑颜色"
+                />
+              </label>
+            </div>
+          </Row>
+          <Row label="大小" hint={`${Math.round(pet.scale * 100)}%${pet.scale === 1 ? "（默认）" : ""}`}>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                className="w-32 cursor-pointer accent-brand"
+                min={PET_SCALE.min}
+                max={PET_SCALE.max}
+                step={PET_SCALE.step}
+                value={pet.scale}
+                onChange={(e) => setPetPrefs({ scale: Math.round(Number(e.target.value) * 10) / 10 })}
+                aria-label="桌宠的大小"
+              />
+              {pet.scale !== 1 && (
+                <button className="btn-ghost p-1" onClick={() => setPetPrefs({ scale: 1 })} title="恢复默认大小" aria-label="恢复默认大小">
+                  <RotateCcw className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </Row>
+          {pet.pos && (
+            <Row label="位置" hint="拖到了找不到的地方？放回右下角">
+              <button className="btn bg-ink/6 px-2.5 py-1 text-xs hover:bg-ink/10" onClick={() => setPetPrefs({ pos: null })}>
+                <RotateCcw className="size-3.5" /> 放回原位
+              </button>
+            </Row>
+          )}
+        </>
+      )}
+    </Section>
   );
 }

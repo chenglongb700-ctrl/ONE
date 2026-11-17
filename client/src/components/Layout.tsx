@@ -11,6 +11,7 @@ import CountdownCorner from "./Countdown";
 import DropZone from "./DropZone";
 import { Mark, Wordmark } from "./Brand";
 import Settings from "./Settings";
+import Pet from "../pet/Pet";
 
 export const MODULES: Record<string, { label: string; icon: LucideIcon }> = {
   "/": { label: "总览", icon: LayoutDashboard },
@@ -136,7 +137,8 @@ export default function Layout() {
         </div>
       </aside>
 
-      <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col">
+      {/* side-panel-room：右侧的 AI 面板打开时，宽屏上给它让出位置（见 index.css） */}
+      <div className="side-panel-room mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col">
         {/* 右上角的倒计时放在换页时会重建的 main 外面：换页面不闪、不重新读数据 */}
         <div className="flex items-center justify-end gap-2 px-4 pt-3 md:px-8 md:pt-4">
           <div className="min-w-0">
@@ -149,6 +151,7 @@ export default function Layout() {
         </main>
       </div>
       <PlayerBar />
+      <Pet />
       <DropZone />
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} onLogout={onLogout} />}
     </div>

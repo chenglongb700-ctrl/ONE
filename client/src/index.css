@@ -377,6 +377,17 @@
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 
+/* 右侧面板（AI 助手）：从右边滑进来 */
+.side-panel { animation: slide-in .22s cubic-bezier(.2, .8, .3, 1); }
+@keyframes slide-in { from { opacity: 0; transform: translateX(24px); } }
+
+/* 屏幕够宽时，右侧面板像侧边栏一样占一栏：页面内容和播放条往左让出 420px + 留白，不被挡住。
+   写在 @layer 外面，才压得过 Tailwind 的 right-3、mx-auto 这些工具类 */
+@media (min-width: 1400px) {
+  html[data-side-panel] .side-panel-room { margin-right: 432px; }
+  html[data-side-panel] [data-music-player] { right: 444px; }
+}
+
 /* 切换页面时内容淡入 */
 /* 只淡入、不位移：带位移的话每次换页内容都会跳一下 */
 .page-enter { animation: fade-in .2s ease-out; }

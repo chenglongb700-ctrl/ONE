@@ -4,7 +4,44 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+/**
+ * AI 在干什么：每个会调用 AI 模型的请求，开始和结束时各发一个 AI_EVENT 事件（桌宠靠它冒"正在想…""好啦"的气泡）。
+ * 按地址认出是哪种 AI 请求；不是 AI 的请求不发。
+ */
+export const AI_EVENT = "one:ai";
+export type AiActivity = { phase: "start"; label: string } | { phase: "end"; ok: boolean; aborted: boolean };
+const AI_LABELS: [RegExp, string][] = [
+  [/^\/ai\/parse/, "在拆你写的那段话"],
+  [/^\/ai\/(ask|page)/, "在想怎么回答"],
+  [/^\/ai\/food/, "在估热量"],
+  [/^\/ai\/journal-suggest/, "在想标题和标签"],
+  [/^\/ai\/task-split/, "在拆任务"],
+  [/^\/summary/, "在写总结"],
+  [/^\/fitness\/review/, "在写健身点评"],
+  [/^\/(news|trending)\/translate/, "在翻译"],
+  [/^\/news\/\d+\/summary/, "在读这篇文章"],
+];
+const emitAi = (detail: AiActivity) => window.dispatchEvent(new CustomEvent<AiActivity>(AI_EVENT, { detail }));
+/** 包一层：是 AI 请求就在前后发事件 */
+async function trackAi<T>(method: string, url: string, run: () => Promise<T>): Promise<T> {
+  const label = method === "POST" ? AI_LABELS.find(([re]) => re.test(url))?.[1] : undefined;
+  if (!label) return run();
+  emitAi({ phase: "start", label });
+  try {
+    const out = await run();
+    emitAi({ phase: "end", ok: true, aborted: false });
+    return out;
+  } catch (err) {
+    emitAi({ phase: "end", ok: false, aborted: isAbort(err) });
+    throw err;
+  }
+}
+
+function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  return trackAi(method, url, () => send<T>(method, url, body));
+}
+
+async function send<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch("/api" + url, {
     method,
     credentials: "include",
@@ -22,7 +59,11 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
  * 每收到一截就用 onText 递出"到目前为止的全部文字"；写完后返回最后那一行（去掉 done）。
  * signal 一触发（比如关掉了窗口），连接就断开，服务器那边的模型请求也跟着停。
  */
-async function stream<T>(url: string, body: unknown, onText: (textSoFar: string) => void, signal?: AbortSignal): Promise<T> {
+function stream<T>(url: string, body: unknown, onText: (textSoFar: string) => void, signal?: AbortSignal): Promise<T> {
+  return trackAi("POST", url, () => readStream<T>(url, body, onText, signal));
+}
+
+async function readStream<T>(url: string, body: unknown, onText: (textSoFar: string) => void, signal?: AbortSignal): Promise<T> {
   const res = await fetch("/api" + url, {
     method: "POST",
     credentials: "include",
