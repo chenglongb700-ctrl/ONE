@@ -16,12 +16,63 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return data as T;
 }
 
+/**
+ * 流式 POST：AI 边写边回的接口用（服务器那边见 server/src/aiStream.ts）。
+ * 响应是一行一个 JSON：{"t":"一截文字"} … 最后一行 {"done":true, …} 或者 {"error":"…"}。
+ * 每收到一截就用 onText 递出"到目前为止的全部文字"；写完后返回最后那一行（去掉 done）。
+ * signal 一触发（比如关掉了窗口），连接就断开，服务器那边的模型请求也跟着停。
+ */
+async function stream<T>(url: string, body: unknown, onText: (textSoFar: string) => void, signal?: AbortSignal): Promise<T> {
+  const res = await fetch("/api" + url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    // 参数不对、没配模型、正在忙这些，服务器还是按普通 JSON 返回错误
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, data.error ?? `请求失败 (${res.status})`);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) continue;
+      const msg = JSON.parse(line) as { t?: string; done?: boolean; error?: string } & Record<string, unknown>;
+      if (typeof msg.t === "string") {
+        text += msg.t;
+        onText(text);
+      } else if (msg.error) {
+        throw new ApiError(502, msg.error);
+      } else if (msg.done) {
+        const { done: _done, ...rest } = msg;
+        return rest as T;
+      }
+    }
+  }
+  throw new ApiError(502, "和服务器的连接断了，回答没写完，再试一次");
+}
+
 export const api = {
   get: <T>(url: string) => request<T>("GET", url),
   post: <T>(url: string, body?: unknown) => request<T>("POST", url, body ?? {}),
   put: <T>(url: string, body: unknown) => request<T>("PUT", url, body),
   del: (url: string) => request<{ ok: true }>("DELETE", url),
+  stream,
 };
+
+/** 是不是"自己取消的"（关窗口时中断了流式请求）：这种不用报错 */
+export const isAbort = (err: unknown) => (err as Error)?.name === "AbortError";
 
 // ---------- 类型 ----------
 export type User = { id: number; username: string; avatar: string | null; wallpaper: string | null };

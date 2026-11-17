@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Pencil, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { api, today } from "../api";
+import { api, isAbort, today } from "../api";
 import Modal, { ErrorText } from "../components/Modal";
 import { SummaryText, type Summary, type SummaryState } from "../components/AiSummary";
 import { ChartCard, LineChart, md } from "./charts";
@@ -150,7 +150,9 @@ function ReviewDialog({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<SummaryState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [live, setLive] = useState(""); // 正在写的点评，到目前为止的文字（流式：写一点显示一点）
   const alive = useRef(true);
+  const stopper = useRef<AbortController | null>(null);
   useEffect(() => {
     alive.current = true;
     api.get<SummaryState>("/fitness/review").then(
@@ -159,19 +161,27 @@ function ReviewDialog({ onClose }: { onClose: () => void }) {
     );
     return () => {
       alive.current = false;
+      stopper.current?.abort(); // 关窗口：停止正在写的点评，不保存
     };
   }, []);
 
   const generate = async () => {
     setBusy(true);
     setError("");
+    setLive("");
+    const ctrl = new AbortController();
+    stopper.current = ctrl;
     try {
-      const got = await api.post<{ summary: Summary }>("/fitness/review");
+      const got = await api.stream<{ summary: Summary }>("/fitness/review", {}, setLive, ctrl.signal);
       if (alive.current) setState((s) => s && { ...s, summary: got.summary });
     } catch (err) {
-      if (alive.current) setError((err as Error).message);
+      if (alive.current && !isAbort(err)) setError((err as Error).message);
     } finally {
-      if (alive.current) setBusy(false);
+      stopper.current = null;
+      if (alive.current) {
+        setBusy(false);
+        setLive("");
+      }
     }
   };
 
@@ -197,7 +207,17 @@ function ReviewDialog({ onClose }: { onClose: () => void }) {
           </p>
         </div>
       ) : busy ? (
-        <div className="rounded-2xl bg-ink/5 px-4 py-10 text-center text-sm text-slate-500">正在让 {state.model} 看你最近 7 天的记录，一般要十几秒到一分钟，别关这个窗口…</div>
+        live ? (
+          <>
+            <div className="rounded-2xl bg-ink/5 px-4 py-4 sm:px-5">
+              <SummaryText text={live} />
+              <span className="mt-1 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-brand align-middle" aria-hidden />
+            </div>
+            <p className="mt-2.5 text-xs text-slate-500">{state.model} 正在写…写完会自动保存；现在关掉窗口就停下，不保存。</p>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-ink/5 px-4 py-10 text-center text-sm text-slate-500">正在让 {state.model} 看你最近 7 天的记录，马上开始写…</div>
+        )
       ) : state.summary ? (
         <>
           <div className="rounded-2xl bg-ink/5 px-4 py-4 sm:px-5">

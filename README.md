@@ -22,6 +22,7 @@
   - **记一笔**：用大白话写"早上称了 74.1；中午吃了黄焖鸡花了 28；晚上跑步 30 分钟；明天交报告"，AI 拆成任务、生活清单、记账、随记、体重、饮食、运动、力量训练的待确认记录，逐条可改、可取消，点保存才写入（走各功能自己的接口）
   - **问我的数据**：问"这个月花最多的是什么""最近体重变化怎么样"，AI 根据最近 90 天的记录回答。只读，对话不保存
   - 各页面里的小入口：资讯「翻译英文标题」和单篇「AI 摘要」、GitHub 热门「翻译英文简介」、随记「AI 建议标题和标签」、任务「AI 把它拆成几步」、饮食「让 AI 估一下热量」
+  - 回答是**边写边显示**的（流式输出）：一两秒就能开始看。页面助手和问我的数据可以点「停止」，写了一半的留着；关掉窗口也会停，不再花钱。总结和健身点评写完才保存，写到一半关掉就不保存
   - 原则：AI 只提建议，要写进数据库的都先给你确认；只在你点按钮时调用；模型回来的内容都校验过才用。**调用时相关内容会发给你配置的模型服务**：记一笔发你写的那段话，问我的数据发最近 90 天记录的摘要，页面助手发这个页面的内容（窗口里写明具体是哪些），翻译和摘要发标题、简介或文章正文
 - **AI 总结**：按一下按钮，让 AI 写一份每日 / 每周 / 每月的总结——总览页总结自己的记录（任务、收支、随记、生活清单），资讯页总结订阅的文章。写好的总结会存下来，可以重新生成。模型自己选：用的是 OpenAI 兼容接口，DeepSeek、通义千问、豆包、Kimi、智谱、本机 Ollama 都行，配置见下面「AI 模型」。**注意：生成时这段时间的记录会发给你配置的那家模型服务**
 - **GitHub 热门**：GitHub 每天星标涨得最快的 50 个项目——读 GitHub Trending 的总榜和 15 种主流语言的榜单，合并后按当天新增星标数排名；按领域自动分类（AI、前端、开发工具…，关键词判断，不用 AI），可以按分类或按热度看，按语言筛选、搜索；每天的榜单保留 30 天，能回看，并标出新上榜的项目
@@ -93,6 +94,7 @@ server/src/
   env.ts          读取 .env；没有登录密钥 JWT_SECRET 时随机生成一个写进去
   ai.ts           调用 AI 模型（OpenAI 兼容接口），读取 .env 里的 AI_BASE_URL / AI_API_KEY / AI_MODEL；chatJson 让模型回 JSON 并解析
   translate.ts    批量翻译成中文、从网页里取正文文字（资讯和热门的 AI 功能用）
+  aiStream.ts     流式返回：把模型边写边出的文字，一行一个 JSON 转给浏览器；浏览器断开就停止模型请求
   aiMaterial.ts   把记录整理成给 AI 看的文字材料：问我的数据用的总概要，和每个页面助手各自的材料与要求
 client/src/
   api.ts          fetch 封装与类型定义
@@ -153,17 +155,19 @@ client/src/
 | GET / POST / PUT / DELETE | `/fitness/body` `/fitness/food` `/fitness/workouts` `/fitness/strength` | 体重、饮食、运动、力量训练记录的增删改查；体重同一天再 POST 是更新；饮食可以 `?date=` 只取某一天 |
 | GET | `/fitness/food/mine` | 自己记过的食物（去重，最近用的在前） |
 | GET | `/fitness/strength/progress?exercise=` | 某个动作每个训练日的最大重量 |
-| GET / POST | `/fitness/review` | 读取最近一份 AI 点评 / 现在生成一份（看最近 7 天的记录） |
+| GET / POST | `/fitness/review` | 读取最近一份 AI 点评 / 现在生成一份（看最近 7 天的记录；POST 是流式返回，见下面的说明） |
 | GET | `/ai/status` | AI 模型配好了没有 `{configured, model}` |
 | POST | `/ai/parse` | 把一段话 `{text}` 拆成待确认的记录 `{items, dropped}`；不写数据库 |
-| POST | `/ai/ask` | 根据最近 90 天的记录回答问题 `{question, history}` → `{answer}` |
-| POST | `/ai/page` | 某个页面的助手 `{page, question, history}` → `{answer}`；page 是 dashboard / work / life / fitness / journal / news / trending / favorites / sites / commands |
+| POST | `/ai/ask` | 根据最近 90 天的记录回答问题 `{question, history}`；流式返回，最后一行 `{done, answer}` |
+| POST | `/ai/page` | 某个页面的助手 `{page, question, history}`；流式返回，最后一行 `{done, answer}`；page 是 dashboard / work / life / fitness / journal / news / trending / favorites / sites / commands |
 | POST | `/ai/food` `/ai/journal-suggest` `/ai/task-split` | 估一样食物的热量 / 给随记建议标题和标签 / 把任务拆成几步；都只返回建议 |
 | POST | `/news/translate` | 把一批文章 `{ids}`（最多 40）的英文标题翻成中文并保存 |
 | POST | `/news/:id/summary` | 读原文并写一段中文摘要，保存后返回 `{aiSummary}` |
 | POST | `/trending/translate` | 把某一天 `{date}` 榜单里的英文简介翻成中文并保存 |
 | GET | `/summary?kind=&period=` | 某种内容（`personal` 自己的记录 / `news` 资讯）某个时间段（`day` / `week` / `month`）已经生成的 AI 总结，返回 `{configured, model, range, summary}` |
-| POST | `/summary` | 现在生成（或重新生成）一份 `{kind, period}`，要等模型写完 |
+| POST | `/summary` | 现在生成（或重新生成）一份 `{kind, period}`；流式返回，写完保存，最后一行 `{done, summary}` |
+
+**流式返回**（上面标了"流式"的几个）：响应是 `application/x-ndjson`，一行一个 JSON——`{"t":"新写出来的一截"}` 写一截发一行，最后一行是 `{"done":true, …}`，中途出错是 `{"error":"原因"}`。参数不对、没配模型、正在忙这些还是普通的 4xx JSON。客户端断开连接，服务器就停止向模型的请求，也不保存。
 
 ## 下一步
 

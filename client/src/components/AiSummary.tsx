@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { RefreshCw, Sparkles } from "lucide-react";
-import { api } from "../api";
+import { api, isAbort } from "../api";
 import Modal from "./Modal";
 
 /**
@@ -9,6 +9,7 @@ import Modal from "./Modal";
  *   kind = personal  总结自己的记录（放在总览页）
  *   kind = news      总结资讯里的文章（放在资讯页）
  * 写好的总结存在服务器上，下次打开同一个时间段直接看；想更新就点"重新生成"。
+ * 生成是流式的：AI 写一点显示一点。写的过程中关掉窗口就停下，不保存（也不再花钱）。
  */
 type Kind = "personal" | "news";
 type Period = "day" | "week" | "month";
@@ -72,7 +73,10 @@ function SummaryDialog({ kind, onClose }: { kind: Kind; onClose: () => void }) {
   const [state, setState] = useState<SummaryState | null>(null);
   const [working, setWorking] = useState<Period | null>(null); // 正在生成哪个时间段的
   const [error, setError] = useState("");
+  const [live, setLive] = useState(""); // 正在写的总结，到目前为止的文字
   const current = useRef(period); // 请求回来时用户可能已经切到别的时间段了
+  const stopper = useRef<AbortController | null>(null);
+  useEffect(() => () => stopper.current?.abort(), []); // 关窗口：停止正在写的总结
 
   useEffect(() => {
     current.current = period;
@@ -88,13 +92,21 @@ function SummaryDialog({ kind, onClose }: { kind: Kind; onClose: () => void }) {
     const p = period;
     setWorking(p);
     setError("");
+    setLive("");
+    const ctrl = new AbortController();
+    stopper.current = ctrl;
     try {
-      const got = await api.post<{ summary: Summary }>("/summary", { kind, period: p });
+      const got = await api.stream<{ summary: Summary }>("/summary", { kind, period: p }, setLive, ctrl.signal);
       if (current.current === p) setState((s) => s && { ...s, summary: got.summary });
     } catch (err) {
+      if (isAbort(err)) return;
       if (current.current === p) setError((err as Error).message);
     } finally {
-      setWorking(null);
+      if (stopper.current === ctrl) {
+        stopper.current = null;
+        setWorking(null);
+        setLive("");
+      }
     }
   };
 
@@ -136,7 +148,17 @@ function SummaryDialog({ kind, onClose }: { kind: Kind; onClose: () => void }) {
           </p>
         </div>
       ) : busy && working === period ? (
-        <div className="rounded-2xl bg-ink/5 px-4 py-10 text-center text-sm text-slate-500">正在让 {state.model} 写{P.name}的总结，一般要十几秒到一分钟，别关这个窗口…</div>
+        live ? (
+          <>
+            <div className="rounded-2xl bg-ink/5 px-4 py-4 sm:px-5">
+              <SummaryText text={live} />
+              <span className="mt-1 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-brand align-middle" aria-hidden />
+            </div>
+            <p className="mt-2.5 text-xs text-slate-500">{state.model} 正在写…写完会自动保存；现在关掉窗口就停下，不保存。</p>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-ink/5 px-4 py-10 text-center text-sm text-slate-500">正在让 {state.model} 看{P.name}的内容，马上开始写…</div>
+        )
       ) : state.summary ? (
         <>
           <div className="rounded-2xl bg-ink/5 px-4 py-4 sm:px-5">

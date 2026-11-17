@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db.js";
 import { crudRouter } from "../crud.js";
-import { AiError, aiStatus, chat } from "../ai.js";
+import { aiStatus, chatStream } from "../ai.js";
+import { streamReply } from "../aiStream.js";
 import { ACTIVITY, bmiLabel, daysToGoal, plan, type Profile } from "../fitnessMath.js";
 
 /**
@@ -290,15 +291,15 @@ fitnessRouter.post("/review", async (req, res) => {
   if (reviewing.has(uid)) return void res.status(409).json({ error: "正在生成，稍等一下。" });
   reviewing.add(uid);
   try {
-    const { text, model } = await chat(REVIEW_PROMPT, `时间范围：${start} 至 ${end}（最近 7 天）\n\n${material.text}`);
-    db.prepare(
-      `INSERT INTO fitness_reviews (user_id, start_date, end_date, content, model, created_at) VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT (user_id, start_date) DO UPDATE SET end_date = excluded.end_date, content = excluded.content, model = excluded.model, created_at = excluded.created_at`,
-    ).run(uid, start, end, text.slice(0, 20_000), model, new Date().toISOString());
-    res.json({ summary: latestReview(uid) });
-  } catch (err) {
-    if (err instanceof AiError) return void res.status(502).json({ error: err.message });
-    throw err;
+    // 流式返回（见 aiStream.ts）：边写边发，写完存下来；中途关掉窗口就停下、不保存
+    await streamReply(req, res, async (onText, signal) => {
+      const { text, model } = await chatStream(REVIEW_PROMPT, [{ role: "user", content: `时间范围：${start} 至 ${end}（最近 7 天）\n\n${material.text}` }], 0.5, onText, signal);
+      db.prepare(
+        `INSERT INTO fitness_reviews (user_id, start_date, end_date, content, model, created_at) VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT (user_id, start_date) DO UPDATE SET end_date = excluded.end_date, content = excluded.content, model = excluded.model, created_at = excluded.created_at`,
+      ).run(uid, start, end, text.slice(0, 20_000), model, new Date().toISOString());
+      return { summary: latestReview(uid) };
+    });
   } finally {
     reviewing.delete(uid);
   }

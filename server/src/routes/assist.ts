@@ -1,14 +1,15 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { AiError, aiStatus, chatJson, chatMessages } from "../ai.js";
+import { AiError, aiStatus, chatJson, chatStream } from "../ai.js";
+import { streamReply } from "../aiStream.js";
 import { PAGES, PAGE_KEYS, SNAPSHOT_DAYS, buildSnapshot, todayLine, ymd } from "../aiMaterial.js";
 
 /**
  * AI 小助手（/api/ai）：
  *   POST /parse            把一段大白话拆成一条条"待确认的记录"（任务、清单、记账、随记、体重、饮食、运动、力量）
  *   POST /food             估一样食物的热量
- *   POST /ask              根据自己最近 90 天的记录回答问题（只读）
- *   POST /page             某一个页面自己的助手：只看这个页面的内容回答问题（只读）
+ *   POST /ask              根据自己最近 90 天的记录回答问题（只读；流式返回，见 aiStream.ts）
+ *   POST /page             某一个页面自己的助手：只看这个页面的内容回答问题（只读；流式返回）
  *   POST /journal-suggest  给一篇随记建议标题和标签
  *   POST /task-split       把一个任务拆成几步
  * 这里的接口都只是"提建议"：不往数据库里写任何东西。要不要保存由用户在页面上确认，保存走各功能原来的接口。
@@ -16,12 +17,18 @@ import { PAGES, PAGE_KEYS, SNAPSHOT_DAYS, buildSnapshot, todayLine, ymd } from "
  */
 const busy = new Set<number>(); // 正在等 AI 回答的账号：一个账号同一时间只跑一个请求
 
-/** 统一处理：没配模型 → 400；同一账号已经有请求在跑 → 409；模型那边出错 → 502 并把原因讲给用户 */
+/** 开始一个 AI 请求前的检查：没配模型 → 400；同一账号已经有请求在跑 → 409。通过了就把这个账号标成"忙"，返回 true */
+function claim(req: Request, res: Response): boolean {
+  if (!aiStatus().configured) return void res.status(400).json({ error: "还没有配置 AI 模型。在项目根目录的 .env 文件里填好 AI_BASE_URL、AI_API_KEY、AI_MODEL，然后重启网站。" }), false;
+  if (busy.has(req.userId!)) return void res.status(409).json({ error: "上一个 AI 请求还没回来，稍等一下。" }), false;
+  busy.add(req.userId!);
+  return true;
+}
+
+/** 统一处理（一次性返回的）：先过 claim 的检查；模型那边出错 → 502 并把原因讲给用户 */
 export async function run(req: Request, res: Response, work: () => Promise<unknown>) {
-  if (!aiStatus().configured) return void res.status(400).json({ error: "还没有配置 AI 模型。在项目根目录的 .env 文件里填好 AI_BASE_URL、AI_API_KEY、AI_MODEL，然后重启网站。" });
+  if (!claim(req, res)) return;
   const uid = req.userId!;
-  if (busy.has(uid)) return void res.status(409).json({ error: "上一个 AI 请求还没回来，稍等一下。" });
-  busy.add(uid);
   try {
     res.json(await work());
   } catch (err) {
@@ -167,24 +174,34 @@ const ASK_PROMPT = `你是用户个人管理网站里的助手。下面有一份
 - 回答用简体中文，简洁直接，先给结论。可以用以"- "开头的列表，不要用其他 Markdown 记号。
 - 篇幅：一般控制在 300 字以内，列表最多 6 条，挑最重要的说，不要把材料逐条复述一遍；用户明确要"详细""全部列出"时再展开。`;
 
+const historySchema = z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(4000) })).max(8).default([]);
 const askInput = {
   question: z.string().trim().min(1, "写一下想问什么").max(500, "问题太长了，精简到 500 字以内"),
-  history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(4000) })).max(8).default([]),
+  history: historySchema,
 };
 
-assistRouter.post("/ask", (req, res) =>
-  run(req, res, async () => {
-    const { question, history } = z.object(askInput).parse(req.body);
-    const system = `${ASK_PROMPT}\n\n${todayLine()}\n\n===== 用户的记录 =====\n${buildSnapshot(req.userId!)}\n===== 记录结束 =====`;
-    const { text: answer } = await chatMessages(system, [...history, { role: "user", content: question }], 0.3);
-    return { answer };
-  }),
-);
+/** 问答（流式）：参数先校验（不对就是普通的 400），再过 claim 的检查，然后边写边发 */
+async function answerStream(req: Request, res: Response, system: string, question: string, history: z.infer<typeof historySchema>) {
+  if (!claim(req, res)) return;
+  try {
+    await streamReply(req, res, async (onText, signal) => {
+      const { text } = await chatStream(system, [...history, { role: "user", content: question }], 0.3, onText, signal);
+      return { answer: text };
+    });
+  } finally {
+    busy.delete(req.userId!);
+  }
+}
+
+assistRouter.post("/ask", async (req, res) => {
+  const { question, history } = z.object(askInput).parse(req.body);
+  const system = `${ASK_PROMPT}\n\n${todayLine()}\n\n===== 用户的记录 =====\n${buildSnapshot(req.userId!)}\n===== 记录结束 =====`;
+  await answerStream(req, res, system, question, history);
+});
 
 // ---------- 每个页面自己的助手 ----------
 // 和「问我的数据」是同一种做法，区别是材料只有当前这个页面的内容（所以更细），提示词里带着这个页面特有的要求。
-assistRouter.post("/page", (req, res) =>
-  run(req, res, async () => {
+assistRouter.post("/page", async (req, res) => {
     const { page, question, history } = z.object({ page: z.enum(PAGE_KEYS), ...askInput }).parse(req.body);
     const p = PAGES[page];
     const system = `你是用户个人管理网站里「${p.name}」页面的助手。下面有一份"页面内容"，是这个页面此刻的数据：${p.covers}。请根据它回答用户的问题。
@@ -203,7 +220,5 @@ ${todayLine()}
 ===== 页面内容 =====
 ${p.material(req.userId!)}
 ===== 内容结束 =====`;
-    const { text: answer } = await chatMessages(system, [...history, { role: "user", content: question }], 0.3);
-    return { answer };
-  }),
-);
+    await answerStream(req, res, system, question, history);
+});

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db.js";
-import { AiError, aiStatus, chat } from "../ai.js";
+import { aiStatus, chatStream } from "../ai.js";
+import { streamReply } from "../aiStream.js";
 
 /**
  * AI 总结：按一下按钮，把一段时间（今天 / 本周 / 本月）的内容整理成文字材料交给模型，让它写一份总结。
@@ -151,7 +152,8 @@ summaryRouter.get("/", (req, res) => {
   res.json({ ...aiStatus(), range: { start: range.start, end: range.end }, summary: stored(req.userId!, kind, period, range.start) });
 });
 
-// POST /summary { kind, period } → 现在生成（或重新生成）一份。要等模型写完，一般十几秒到一分钟
+// POST /summary { kind, period } → 现在生成（或重新生成）一份。流式返回（见 aiStream.ts）：边写边发，写完存下来，
+// 最后一行带上存好的那一份。中途关掉窗口就停下、不保存
 summaryRouter.post("/", async (req, res) => {
   const { kind, period } = query.parse(req.body);
   const uid = req.userId!;
@@ -176,15 +178,14 @@ summaryRouter.post("/", async (req, res) => {
   if (busy.has(key)) return void res.status(409).json({ error: "这一份正在生成，稍等一下。" });
   busy.add(key);
   try {
-    const { text, model } = await chat(system, material);
-    db.prepare(
-      `INSERT INTO summaries (user_id, kind, period, start_date, end_date, content, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (user_id, kind, period, start_date) DO UPDATE SET end_date = excluded.end_date, content = excluded.content, model = excluded.model, created_at = excluded.created_at`,
-    ).run(uid, kind, period, range.start, range.end, text.slice(0, 20_000), model, new Date().toISOString());
-    res.json({ summary: stored(uid, kind, period, range.start) });
-  } catch (err) {
-    if (err instanceof AiError) return void res.status(502).json({ error: err.message });
-    throw err;
+    await streamReply(req, res, async (onText, signal) => {
+      const { text, model } = await chatStream(system, [{ role: "user", content: material }], 0.5, onText, signal);
+      db.prepare(
+        `INSERT INTO summaries (user_id, kind, period, start_date, end_date, content, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (user_id, kind, period, start_date) DO UPDATE SET end_date = excluded.end_date, content = excluded.content, model = excluded.model, created_at = excluded.created_at`,
+      ).run(uid, kind, period, range.start, range.end, text.slice(0, 20_000), model, new Date().toISOString());
+      return { summary: stored(uid, kind, period, range.start) };
+    });
   } finally {
     busy.delete(key);
   }
