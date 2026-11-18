@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Bell, EyeOff, Hand, MessageCircleQuestion, PencilLine, X } from "lucide-react";
+import { Bell, EyeOff, Hand, MessageCircleQuestion, PencilLine, Sparkles, X } from "lucide-react";
 import { AI_EVENT, api, type AiActivity } from "../api";
 import { DATA_CHANGED_EVENT } from "../components/AiCapture";
 import { OPEN_AI_EVENT, type OpenAi } from "../components/AiMenu";
 import { pageAiFor } from "../components/pageAi";
 import Blob, { type Mood } from "./Blob";
-import { AI_DONE, celebrate, DROPPED, greeting, grewUp, pick, POKE, streakLine, STREAK_MILESTONES } from "./lines";
+import { AI_DONE, BUMPED, celebrate, DROPPED, greeting, grewUp, pick, POKE, streakLine, STREAK_MILESTONES } from "./lines";
 import { memory, petPalette, setPetPrefs, usePetPrefs, type PetPos } from "./prefs";
+import { aim, atRest, catchIt, createPhys, EDGE, paint, release, step, unpaint, viewH, viewW, type Phys } from "./physics";
 import "./pet.css";
 
 /**
@@ -19,6 +20,7 @@ import "./pet.css";
  * - 你记了东西它会高兴；记录的天数越多它长得越大（成长阶段由服务器按"一共记过几天"算）
  * - 点它：打开小菜单（当前页面的 AI 助手、记一笔、摸摸它、藏起来）
  * - 3 分钟没动鼠标键盘它就睡着，一动就醒
+ * - 拖它：丝滑地跟着鼠标走；甩出去会滑一段，碰到窗口边会弹回来，撞扁了还会晃几下（physics.ts）
  */
 type PetInfo = {
   today: string;
@@ -26,8 +28,19 @@ type PetInfo = {
   streak: number;
   totalDays: number;
   stage: { level: number; name: string; next: { name: string; daysLeft: number } | null };
-  reminders: { id: string; text: string; to: string }[];
+  reminders: { id: string; text: string; to?: string }[];
+  /** AI 今天用了多少 token、账户还剩多少钱（没配置 AI 时为 null；余额查不到时 balance 为 null） */
+  ai: {
+    model: string;
+    today: { input: number; output: number; cached: number; total: number; calls: number };
+    balance: { currency: string; amount: number } | null;
+  } | null;
 };
+
+/** 12345 → "1.2 万"，860 → "860" */
+const fmtTokens = (n: number) => (n < 10_000 ? n.toLocaleString("zh-CN") : `${(n / 10_000).toFixed(n < 100_000 ? 1 : 0)} 万`);
+const fmtMoney = (b: { currency: string; amount: number }) =>
+  b.currency === "CNY" ? `¥${b.amount.toFixed(2)}` : b.currency === "USD" ? `${b.amount.toFixed(2)}` : `${b.amount.toFixed(2)} ${b.currency}`;
 type Bubble = { text: string; to?: string; key: number };
 type Anim = "hop" | "jiggle" | "look" | "sway" | "land";
 
@@ -70,7 +83,8 @@ export default function Pet() {
   const [asleep, setAsleep] = useState(false);
   const [tempMood, setTempMood] = useState<Mood | null>(null);
   const [anim, setAnim] = useState<{ name: Anim; key: number } | null>(null);
-  const [dragPos, setDragPos] = useState<PetPos | null>(null);
+  // 拖着或者飞着的时候：容器的 right/bottom 固定在出发点，实际位移由 physics.ts 每帧写 transform
+  const [fly, setFly] = useState<PetPos | null>(null);
 
   const root = useRef<HTMLDivElement>(null);
   const bubbleTimer = useRef<number>(0);
@@ -78,7 +92,16 @@ export default function Pet() {
   const lastActive = useRef(Date.now());
   const lastReminder = useRef(0);
   const prevInfo = useRef<PetInfo | null>(null);
-  const drag = useRef<{ x: number; y: number; from: PetPos; moved: boolean } | null>(null);
+  const jelly = useRef<HTMLDivElement>(null);
+  const squash = useRef<HTMLDivElement>(null);
+  /** 按下了还没松手（moved：已经拖起来了，不再算"点一下"） */
+  const pointer = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+  const phys = useRef<Phys | null>(null);
+  const raf = useRef(0);
+  const sizeRef = useRef(SIZE);
+  const finishRef = useRef<(p: Phys) => void>(() => {});
+  const handlers = useRef<{ move: (e: globalThis.PointerEvent) => void; up: (e: globalThis.PointerEvent) => void }>({ move: () => {}, up: () => {} });
+  const moving = () => !!(pointer.current || phys.current);
   const busyRef = useRef(0);
   busyRef.current = aiBusy;
 
@@ -102,12 +125,12 @@ export default function Pet() {
   }, []);
 
   // ---------- 读数据，看看有没有值得高兴的 ----------
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<PetInfo | null> => {
     let got: PetInfo;
     try {
       got = await api.get<PetInfo>("/pet");
     } catch {
-      return; // 没登录或者服务器没开，就安静待着
+      return null; // 没登录或者服务器没开，就安静待着
     }
     const prev = prevInfo.current;
     prevInfo.current = got;
@@ -118,13 +141,14 @@ export default function Pet() {
     if (lastLevel !== null && got.stage.level > lastLevel) {
       say(grewUp(got.stage.name), { mood: "happy", ms: 8000 });
       play("hop");
-      return;
+      return got;
     }
     if (prev && prev.today === got.today && got.todayCount > prev.todayCount && busyRef.current === 0) {
       const milestone = STREAK_MILESTONES.includes(got.streak) && prev.streak < got.streak;
       say(milestone ? streakLine(got.streak) : celebrate(got.todayCount), { mood: "happy", ms: 5000 });
       play("hop");
     }
+    return got;
   }, [say, play]);
 
   useEffect(() => {
@@ -146,7 +170,7 @@ export default function Pet() {
   useEffect(() => {
     if (!info) return;
     const tryRemind = () => {
-      if (busyRef.current > 0 || drag.current || document.hidden) return;
+      if (busyRef.current > 0 || moving() || document.hidden) return;
       if (Date.now() - lastActive.current > SLEEP_AFTER) return; // 睡着了 / 人不在，不说话
       const today = info.today;
       // 每天第一次：先打招呼
@@ -188,14 +212,23 @@ export default function Pet() {
         setAiBusy((n) => Math.max(0, n - 1));
         if (d.aborted) hush();
         else if (d.ok) {
-          say(pick(AI_DONE), { mood: "happy", ms: 3500 });
+          const done = pick(AI_DONE);
+          const before = prevInfo.current?.ai?.today.total;
+          say(done, { mood: "happy", ms: 5000 });
           play("hop");
+          // 再读一次数据，看这次用了多少 token，接在"好啦"后面（气泡还是那一个，只换字）
+          load().then((got) => {
+            const after = got?.ai?.today.total;
+            if (before === undefined || after === undefined || after <= before) return;
+            const text = `${done} 这次用了 ${fmtTokens(after - before)} tokens`;
+            setBubble((b) => (b && b.text === done ? { ...b, text } : b));
+          });
         } else say("哎呀，AI 那边出错了", { mood: "worried", ms: 5000 });
       }
     };
     window.addEventListener(AI_EVENT, onAi);
     return () => window.removeEventListener(AI_EVENT, onAi);
-  }, [say, hush, play]);
+  }, [say, hush, play, load]);
 
   // ---------- 睡觉、醒来、眼睛跟着鼠标 ----------
   useEffect(() => {
@@ -227,7 +260,7 @@ export default function Pet() {
     window.addEventListener("keydown", onOther);
     window.addEventListener("wheel", onOther, { passive: true });
     const t = window.setInterval(() => {
-      if (busyRef.current === 0 && !drag.current && Date.now() - lastActive.current > SLEEP_AFTER) {
+      if (busyRef.current === 0 && !moving() && Date.now() - lastActive.current > SLEEP_AFTER) {
         setAsleep(true);
         setBubble(null);
         setMenu(false);
@@ -248,7 +281,7 @@ export default function Pet() {
     const next = () => {
       t = window.setTimeout(
         () => {
-          if (!asleep && aiBusy === 0 && !bubble && !menu && !drag.current) play(pick<Anim>(["look", "look", "sway", "hop"]));
+          if (!asleep && aiBusy === 0 && !bubble && !menu && !moving()) play(pick<Anim>(["look", "look", "sway", "hop"]));
           next();
         },
         18_000 + Math.random() * 25_000,
@@ -284,16 +317,63 @@ export default function Pet() {
     window.clearTimeout(moodTimer.current);
   }, []);
 
+  // ---------- 拖动和甩出去的动画循环 ----------
+  const tick = useCallback(function frame(now: number) {
+    const p = phys.current;
+    const el = root.current;
+    if (!p || !el || !jelly.current || !squash.current) {
+      raf.current = 0;
+      return;
+    }
+    // 每帧最多算 64ms（切到别的标签页再回来不会"瞬移"），切成 1/120 秒的小步，弹簧才稳
+    let dt = Math.min(0.064, Math.max(0, (now - p.last) / 1000));
+    p.last = now;
+    while (dt > 1e-6) {
+      const h = Math.min(dt, 1 / 120);
+      step(p, h, sizeRef.current);
+      dt -= h;
+    }
+    paint(p, el, jelly.current, squash.current);
+    if (atRest(p) || (p.mode !== "drag" && now - p.releasedAt > 8000)) {
+      raf.current = 0;
+      finishRef.current(p);
+      return;
+    }
+    raf.current = requestAnimationFrame(frame);
+  }, []);
+  const run = useCallback(() => {
+    if (raf.current) return;
+    if (phys.current) phys.current.last = performance.now();
+    raf.current = requestAnimationFrame(tick);
+  }, [tick]);
+
+  // 拖动时鼠标跑多快、跑多远都跟得上：在整个窗口上听
+  useEffect(() => {
+    const move = (e: globalThis.PointerEvent) => handlers.current.move(e);
+    const up = (e: globalThis.PointerEvent) => handlers.current.up(e);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
+    };
+  }, []);
+
   if (!prefs.visible) return null;
 
   // ---------- 位置 ----------
   const level = info?.stage.level ?? 1;
   const size = Math.round(SIZE * prefs.scale * (0.88 + level * 0.04));
-  const saved = dragPos ?? prefs.pos ?? defaultPos();
-  const pos = { right: clamp(saved.right, 4, window.innerWidth - size - 4), bottom: clamp(saved.bottom, 4, window.innerHeight - size - 4) };
-  const shift = docked && !dragPos && pos.right < 440 ? 432 : 0; // 给停靠的 AI 面板让位
-  const onRightHalf = pos.right + shift < window.innerWidth / 2;
-  const nearTop = pos.bottom > window.innerHeight - size - 220;
+  sizeRef.current = size;
+  const saved = fly ?? prefs.pos ?? defaultPos();
+  const pos = { right: clamp(saved.right, EDGE, viewW() - size - EDGE), bottom: clamp(saved.bottom, EDGE, viewH() - size - EDGE) };
+  const shift = docked && !fly && pos.right < 440 ? 432 : 0; // 给停靠的 AI 面板让位
+  const onRightHalf = pos.right + shift < viewW() / 2;
+  const nearTop = pos.bottom > viewH() - size - 220;
 
   // ---------- 交互 ----------
   const poke = () => {
@@ -315,34 +395,72 @@ export default function Pet() {
   const onPointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
     try {
-      e.currentTarget.setPointerCapture(e.pointerId); // 拖得快、鼠标跑出团子范围也继续跟着走
+      e.currentTarget.setPointerCapture(e.pointerId); // 触屏上拖出团子范围也继续跟着
     } catch {
-      // 拿不到也能拖，只是鼠标甩太快时可能跟丢
+      // 拿不到也没关系，移动和松手是在整个窗口上听的
     }
-    drag.current = { x: e.clientX, y: e.clientY, from: { right: pos.right + shift, bottom: pos.bottom }, moved: false };
-  };
-  const onPointerMove = (e: PointerEvent<HTMLButtonElement>) => {
-    const d = drag.current;
-    if (!d) return;
-    const dx = e.clientX - d.x;
-    const dy = e.clientY - d.y;
-    if (!d.moved && Math.hypot(dx, dy) < 5) return; // 手抖一下不算拖
-    if (!d.moved) {
-      d.moved = true;
-      setMenu(false);
-      hush();
+    const p = phys.current;
+    // 还在飞的时候一把抓住：直接接着拖
+    pointer.current = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: !!p };
+    if (p) {
+      catchIt(p, e.clientX, e.clientY);
+      aim(p, e.clientX, e.clientY, e.timeStamp, size);
+      run();
     }
-    setDragPos({ right: d.from.right - dx, bottom: d.from.bottom - dy });
   };
-  const onPointerUp = () => {
-    const d = drag.current;
-    drag.current = null;
-    if (!d) return;
-    if (!d.moved) return click();
-    if (dragPos) setPetPrefs({ pos: { right: Math.round(pos.right), bottom: Math.round(pos.bottom) } });
-    setDragPos(null);
-    play("land");
-    if (Math.random() < 0.5) say(pick(DROPPED), { ms: 2000 });
+  const startDrag = (e: globalThis.PointerEvent, from: { x: number; y: number }) => {
+    const el = root.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const p = createPhys(r.left, r.top, from.x - r.left, from.y - r.top);
+    phys.current = p;
+    // 出发点按现在看到的位置算（包括给 AI 面板让的那段），这样拿起来不会跳
+    setFly({ right: viewW() - r.right, bottom: viewH() - r.bottom });
+    setMenu(false);
+    hush();
+    aim(p, e.clientX, e.clientY, e.timeStamp, size);
+    run();
+  };
+  handlers.current.move = (e) => {
+    const pt = pointer.current;
+    if (!pt || e.pointerId !== pt.id) return;
+    if (!pt.moved) {
+      if (Math.hypot(e.clientX - pt.x, e.clientY - pt.y) < 5) return; // 手抖一下不算拖
+      pt.moved = true;
+      startDrag(e, pt);
+      return;
+    }
+    const p = phys.current;
+    if (p) aim(p, e.clientX, e.clientY, e.timeStamp, size);
+  };
+  handlers.current.up = (e) => {
+    const pt = pointer.current;
+    if (!pt || e.pointerId !== pt.id) return;
+    pointer.current = null;
+    if (!pt.moved) return click();
+    const p = phys.current;
+    if (!p) return;
+    release(p, e.timeStamp);
+    run();
+  };
+  // 停稳了：把位置存起来，transform 换回 right/bottom
+  finishRef.current = (p) => {
+    phys.current = null;
+    const el = root.current;
+    const next = { right: Math.round(viewW() - p.x - size), bottom: Math.round(viewH() - p.y - size) };
+    if (el) {
+      // 同一帧里把 transform 换成新的 right/bottom；React 稍后写进去的是同样的值，不会闪
+      el.style.right = `${next.right}px`;
+      el.style.bottom = `${next.bottom}px`;
+      unpaint(el, jelly.current, squash.current);
+    }
+    setPetPrefs({ pos: next });
+    setFly(null);
+    if (p.bumped > 1100) say(pick(BUMPED), { mood: "worried", ms: 2200 });
+    else {
+      if (p.mode === "settle") play("land");
+      if (Math.random() < 0.4) say(pick(DROPPED), { ms: 2000 });
+    }
   };
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -371,7 +489,7 @@ export default function Pet() {
   const float = `absolute ${nearTop ? "top-full mt-2" : "bottom-full mb-2"} ${onRightHalf ? "right-0" : "left-0"}`;
 
   return (
-    <div ref={root} className={`fixed z-[45] ${asleep ? "pet-sleeping" : ""} ${dragPos ? "pet-dragging" : ""}`} style={{ right: pos.right + shift, bottom: pos.bottom, width: size, height: size, transition: dragPos ? "none" : "right .3s ease" }}>
+    <div ref={root} className={`fixed z-[45] ${asleep ? "pet-sleeping" : ""}`} style={{ right: pos.right + shift, bottom: pos.bottom, width: size, height: size, transition: fly ? "none" : "right .3s ease" }}>
       {bubble && !menu && (
         <div key={bubble.key} className={`pet-pop ${float} w-max max-w-[260px] text-pretty`}>
           <div className="glass-strong flex items-start gap-1.5 rounded-2xl py-2 pl-3 pr-1.5 text-sm leading-snug shadow-lg">
@@ -413,11 +531,34 @@ export default function Pet() {
                 )}
               </p>
             )}
+            {/* AI 今天用了多少、还剩多少钱 */}
+            {info?.ai && (
+              <div
+                className="mt-2 grid grid-cols-2 gap-1.5"
+                title={`模型 ${info.ai.model}
+今天：输入 ${info.ai.today.input.toLocaleString("zh-CN")}（其中命中缓存 ${info.ai.today.cached.toLocaleString("zh-CN")}）· 输出 ${info.ai.today.output.toLocaleString("zh-CN")} tokens`}
+              >
+                <div className="rounded-[10px] bg-ink/5 px-2.5 py-1.5">
+                  <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                    <Sparkles className="size-3 text-brand" /> 今天 AI 用了
+                  </div>
+                  <div className="mt-0.5 text-sm font-semibold tabular-nums">
+                    {fmtTokens(info.ai.today.total)} <span className="text-[11px] font-normal text-slate-500">tokens</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500">{info.ai.today.calls ? `${info.ai.today.calls} 次` : "还没用过"}</div>
+                </div>
+                <div className="rounded-[10px] bg-ink/5 px-2.5 py-1.5">
+                  <div className="text-[11px] text-slate-500">账户余额</div>
+                  <div className={`mt-0.5 text-sm font-semibold tabular-nums ${info.ai.balance && info.ai.balance.amount < 1 ? "text-rose-500" : ""}`}>{info.ai.balance ? fmtMoney(info.ai.balance) : "—"}</div>
+                  <div className="truncate text-[11px] text-slate-500">{info.ai.balance ? info.ai.model : "这家查不到余额"}</div>
+                </div>
+              </div>
+            )}
           </div>
           {info && info.reminders.length > 0 && (
             <div className="mb-1 border-y border-line py-1">
               {info.reminders.map((r) => (
-                <button key={r.id} role="menuitem" className="flex w-full cursor-pointer items-start gap-2 rounded-[10px] px-2.5 py-1.5 text-left text-xs leading-relaxed text-slate-600 transition hover:bg-ink/8 hover:text-ink" onClick={() => goTo(r.to)}>
+                <button key={r.id} role="menuitem" className="flex w-full cursor-pointer items-start gap-2 rounded-[10px] px-2.5 py-1.5 text-left text-xs leading-relaxed text-slate-600 transition hover:bg-ink/8 hover:text-ink" onClick={() => (r.to ? goTo(r.to) : setMenu(false))}>
                   <Bell className="mt-0.5 size-3.5 shrink-0 text-brand" />
                   {r.text}
                 </button>
@@ -439,18 +580,20 @@ export default function Pet() {
       )}
 
       <button
-        className="size-full cursor-grab touch-none rounded-full outline-offset-4 active:cursor-grabbing"
+        className="size-full cursor-grab touch-none select-none rounded-full outline-offset-4 active:cursor-grabbing"
         aria-label={`${prefs.name}（桌宠）：点一下打开菜单，按住可以拖动`}
         aria-haspopup="menu"
         aria-expanded={menu}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
       >
-        <div key={anim?.key ?? 0} className={`pet-figure ${anim ? `pet-anim-${anim.name}` : ""}`} onAnimationEnd={(e) => e.target === e.currentTarget && setAnim(null)}>
-          <Blob mood={mood} stage={level} palette={c} />
+        {/* jelly：跑起来拉长、往前倾；squash：撞墙时贴着墙压扁再晃回来（都由 physics.ts 每帧写） */}
+        <div ref={jelly} className="pet-jelly">
+          <div ref={squash} className="pet-squash">
+            <div key={anim?.key ?? 0} className={`pet-figure ${anim ? `pet-anim-${anim.name}` : ""}`} onAnimationEnd={(e) => e.target === e.currentTarget && setAnim(null)}>
+              <Blob mood={mood} stage={level} palette={c} />
+            </div>
+          </div>
         </div>
       </button>
     </div>

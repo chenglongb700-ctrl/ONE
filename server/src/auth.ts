@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { db } from "./db.js";
+import { aiUser } from "./aiUsage.js";
 import "./env.js";
 
 // 登录凭证的签名密钥：来自 .env，第一次启动时由 env.ts 自动生成（不能写死在公开的代码里）
@@ -78,7 +79,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { uid: number };
     req.userId = payload.uid;
-    next();
+    // 后面这个请求里调用 AI 用掉的 token，都记在这个人头上（见 aiUsage.ts）
+    aiUser.run(payload.uid, () => next());
   } catch {
     res.status(401).json({ error: "登录已过期，请重新登录" });
   }

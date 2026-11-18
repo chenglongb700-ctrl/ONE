@@ -1,4 +1,5 @@
 import "./env.js"; // 读 .env
+import { recordUsage } from "./aiUsage.js";
 
 /**
  * 调用 AI 模型。
@@ -50,7 +51,14 @@ async function post(system: string, messages: ChatMessage[], temperature: number
     fetch(`${c.baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(c.apiKey ? { Authorization: `Bearer ${c.apiKey}` } : {}) },
-      body: JSON.stringify({ model: c.model, messages: [{ role: "system", content: system }, ...messages], temperature, stream }),
+      body: JSON.stringify({
+        model: c.model,
+        messages: [{ role: "system", content: system }, ...messages],
+        temperature,
+        stream,
+        // 流式输出默认不告诉用了多少 token，要这样明确要一下（最后会多来一条只有 usage 的消息）
+        ...(stream ? { stream_options: { include_usage: true } } : {}),
+      }),
       signal: signal ? AbortSignal.any([timeout, signal]) : timeout,
     });
 
@@ -102,7 +110,8 @@ export function chat(system: string, user: string, temperature = 0.5): Promise<{
 /** 多轮对话：一段系统提示，加上按顺序排好的几轮用户和 AI 的话（最后一条是用户的） */
 export async function chatMessages(system: string, messages: ChatMessage[], temperature = 0.5): Promise<{ text: string; model: string }> {
   const res = await post(system, messages, temperature, false);
-  const body = (await res.json().catch(() => null)) as { choices?: { message?: { content?: unknown } }[] } | null;
+  const body = (await res.json().catch(() => null)) as { choices?: { message?: { content?: unknown } }[]; usage?: unknown } | null;
+  recordUsage(config().model, body?.usage);
   const text = body?.choices?.[0]?.message?.content;
   if (typeof text !== "string" || !text.trim()) throw new AiError("AI 模型没有返回内容，再试一次");
   return { text: text.replace(/<think>[\s\S]*?<\/think>/g, "").trim(), model: config().model };
@@ -126,6 +135,7 @@ export async function chatStream(
   let buffer = "";
   let raw = "";
   let shown = 0;
+  let usage: unknown = null;
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -138,13 +148,14 @@ export async function chatStream(
         if (!line.startsWith("data:")) continue; // 空行、": keep-alive" 之类的注释行
         const data = line.slice(5).trim();
         if (data === "[DONE]") continue;
-        let chunk: { choices?: { delta?: { content?: unknown } }[]; error?: { message?: unknown } };
+        let chunk: { choices?: { delta?: { content?: unknown } }[]; error?: { message?: unknown }; usage?: unknown };
         try {
           chunk = JSON.parse(data);
         } catch {
           continue;
         }
         if (chunk.error) throw new AiError(`AI 模型中途出错了${typeof chunk.error.message === "string" ? `：${chunk.error.message.slice(0, 200)}` : ""}，再试一次`);
+        if (chunk.usage) usage = chunk.usage;
         const piece = chunk.choices?.[0]?.delta?.content;
         if (typeof piece !== "string" || !piece) continue;
         raw += piece;
@@ -159,6 +170,7 @@ export async function chatStream(
     if (signal?.aborted || err instanceof AiError) throw err;
     throw new AiError(isAbort(err) ? "AI 模型写得太久，超过两分钟停下了，再试一次" : "和 AI 模型的连接断了，回答没写完，再试一次");
   }
+  recordUsage(config().model, usage);
   const text = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
   if (!text) throw new AiError("AI 模型没有返回内容，再试一次");
   return { text, model: config().model };

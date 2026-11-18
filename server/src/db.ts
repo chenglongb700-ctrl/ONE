@@ -398,3 +398,17 @@ CREATE INDEX IF NOT EXISTS idx_tracks_user ON tracks(user_id);
 ensureColumn("articles", "title_zh", "TEXT NOT NULL DEFAULT ''"); // 标题的中文翻译
 ensureColumn("articles", "ai_summary", "TEXT NOT NULL DEFAULT ''"); // AI 写的中文摘要
 ensureColumn("trending", "description_zh", "TEXT NOT NULL DEFAULT ''"); // 项目简介的中文翻译
+
+// AI 每次调用用了多少 token（见 aiUsage.ts）。user_id 为空：不是哪个人在网站上点的（比如后台翻译）
+db.exec(`
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  model TEXT NOT NULL DEFAULT '',
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cached_tokens INTEGER NOT NULL DEFAULT 0,   -- 输入里命中缓存的部分（更便宜）
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id, created_at);
+`);

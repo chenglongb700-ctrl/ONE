@@ -30,3 +30,6 @@ export const grewUp = (stage: string) => `我长大了！现在是「${stage}」
 
 /** 被拖着走 / 放下 */
 export const DROPPED = ["呼～到了", "这里不错", "晕乎乎…", "放稳啦"];
+
+/** 被甩出去狠狠撞了墙 */
+export const BUMPED = ["哎哟！", "咚——撞到了", "眼冒金星…", "再来一次！", "好晕好晕"];
